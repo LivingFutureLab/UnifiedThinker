@@ -1,0 +1,381 @@
+[
+    {
+      "function": {
+        "name": "list_directory",
+        "description": "Lists the names of files and subdirectories directly within a specified directory path. Can optionally ignore entries matching provided glob patterns.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "description": "The absolute path to the directory to list (must be absolute, not relative)",
+              "type": "string"
+            },
+            "file_filtering_options": {
+              "description": "Optional: Whether to respect ignore patterns from .gitignore or .geminiignore",
+              "type": "object"
+            },
+            "ignore": {
+              "description": "List of glob patterns to ignore",
+              "type": "array"
+            }
+          },
+          "required": [
+            "path"
+          ]
+        }
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "read_file",
+        "description": "Reads and returns the content of a specified file from the local filesystem. Handles text files, images (PNG, JPG, GIF, WEBP, SVG, BMP), PDF files (extracts text content), DOCX files (extracts text content), and Excel files (converts to text table format). For text files, it can read specific line ranges.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "absolute_path": {
+              "description": "The absolute path to the file to read (e.g., '/home/user/project/file.txt'). Relative paths are not supported. You must provide an absolute path.",
+              "type": "string"
+            },
+            "offset": {
+              "description": "Optional: For text files, the 0-based line number to start reading from. Requires 'limit' to be set. Use for paginating through large files.",
+              "type": "number"
+            },
+            "limit": {
+              "description": "Optional: For text files, maximum number of lines to read. Use with 'offset' to paginate through large files. If omitted, reads the entire file (if feasible, up to a default limit).",
+              "type": "number"
+            }
+          },
+          "required": [
+            "absolute_path"
+          ]
+        }
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "search_file_content",
+        "description": "Searches for a regular expression pattern within the content of files or directories using ripgrep for fast performance. Can search in a specific file or recursively in a directory. Can filter files by a glob pattern. Returns the lines containing matches, along with their file paths and line numbers. Directory results limited to 20,000 matches like VSCode.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "description": "Optional: The absolute path to the file or directory to search within. If omitted, searches the current working directory.",
+              "type": "string"
+            },
+            "include": {
+              "description": "Optional: A glob pattern to filter which files are searched (e.g., '*.js', '*.{ts,tsx}', 'src/**'). When searching a single file, validates if the file matches the pattern. If omitted, searches all files (respecting potential global ignores).",
+              "type": "string"
+            },
+            "pattern": {
+              "description": "The regular expression (regex) pattern to search for within file contents (e.g., 'function\\\\s+myFunction', 'import\\\\s+\\\\{.*\\\\}\\\\s+from\\\\s+.*').",
+              "type": "string"
+            }
+          },
+          "required": [
+            "pattern"
+          ]
+        }
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "glob",
+        "description": "Efficiently finds files matching specific glob patterns (e.g., `src/**/*.ts`, `**/*.md`), returning absolute paths sorted by modification time (newest first). Ideal for quickly locating files based on their name or path structure, especially in large codebases.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "description": "Optional: The absolute path to the directory to search within. If omitted, searches the root directory.",
+              "type": "string"
+            },
+            "respect_git_ignore": {
+              "description": "Optional: Whether to respect .gitignore patterns when finding files. Only available in git repositories. Defaults to true.",
+              "type": "boolean"
+            },
+            "case_sensitive": {
+              "description": "Optional: Whether the search should be case-sensitive. Defaults to false.",
+              "type": "boolean"
+            },
+            "pattern": {
+              "description": "The glob pattern to match against (e.g., '**/*.py', 'docs/*.md').",
+              "type": "string"
+            }
+          },
+          "required": [
+            "pattern"
+          ]
+        }
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "replace",
+        "description": "Replaces text within a file. By default, replaces a single occurrence, but can replace multiple occurrences when `expected_replacements` is specified. This tool requires providing significant context around the change to ensure precise targeting. Always use the read_file tool to examine the file's current content before attempting a text replacement.\n\n      The user has the ability to modify the `new_string` content. If modified, this will be stated in the response.\n\nExpectation for required parameters:\n1. `file_path` MUST be an absolute path; otherwise an error will be thrown.\n2. `old_string` MUST be the exact literal text to replace (including all whitespace, indentation, newlines, and surrounding code etc.).\n3. `new_string` MUST be the exact literal text to replace `old_string` with (also including all whitespace, indentation, newlines, and surrounding code etc.). Ensure the resulting code is correct and idiomatic.\n4. NEVER escape `old_string` or `new_string`, that would break the exact literal text requirement.\n**Important:** If ANY of the above are not satisfied, the tool will fail. CRITICAL for `old_string`: Must uniquely identify the single instance to change. Include at least 3 lines of context BEFORE and AFTER the target text, matching whitespace and indentation precisely. If this string matches multiple locations, or does not match exactly, the tool will fail.\n**Multiple replacements:** Set `expected_replacements` to the number of occurrences you want to replace. The tool will replace ALL occurrences that match `old_string` exactly. Ensure the number of replacements matches your expectation.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "file_path": {
+              "description": "The absolute path to the file to modify. Must start with '/'.",
+              "type": "string"
+            },
+            "old_string": {
+              "description": "The exact literal text to replace, preferably unescaped. For single replacements (default), include at least 3 lines of context BEFORE and AFTER the target text, matching whitespace and indentation precisely. For multiple replacements, specify expected_replacements parameter. If this string is not the exact literal text (i.e. you escaped it) or does not match exactly, the tool will fail.",
+              "type": "string"
+            },
+            "expected_replacements": {
+              "description": "Number of replacements expected. Defaults to 1 if not specified. Use when you want to replace multiple occurrences.",
+              "type": "number"
+            },
+            "new_string": {
+              "description": "The exact literal text to replace `old_string` with, preferably unescaped. Provide the EXACT text. Ensure the resulting code is correct and idiomatic.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "file_path",
+            "old_string",
+            "new_string"
+          ]
+        }
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "write_file",
+        "description": "Writes content to a specified file in the local filesystem.\n\n      The user has the ability to modify `content`. If modified, this will be stated in the response.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "file_path": {
+              "description": "The absolute path to the file to write to (e.g., '/home/user/project/file.txt'). Relative paths are not supported.",
+              "type": "string"
+            },
+            "content": {
+              "description": "The content to write to the file.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "file_path",
+            "content"
+          ]
+        }
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "xml_escape",
+        "description": "Automatically escapes special characters in XML/HTML files to make them valid. This tool will:\n      - Replace < with &lt; (except in tags)\n      - Replace > with &gt; (except in tags)\n      - Replace & with &amp; (except in existing entities)\n      - Replace \" with &quot; (in attribute values)\n      - Replace ' with &apos; (in attribute values)\n      \n      The tool intelligently detects which characters need escaping based on their context.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "escape_all": {
+              "description": "If true, escapes all special characters. If false (default), only escapes characters in text content",
+              "type": "boolean"
+            },
+            "file_path": {
+              "description": "The absolute path to the XML/HTML file to escape",
+              "type": "string"
+            }
+          },
+          "required": [
+            "file_path"
+          ]
+        }
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "web_fetch",
+        "description": "Processes content from URL(s), including local and private network addresses (e.g., localhost), embedded in a prompt. Include up to 20 URLs and instructions (e.g., summarize, extract specific data) directly in the 'prompt' parameter.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "prompt": {
+              "description": "A comprehensive prompt that includes the URL(s) (up to 20) to fetch and specific instructions on how to process their content (e.g., \"Summarize https://example.com/article and extract key points from https://another.com/data\"). Must contain at least one URL starting with http:// or https://.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "prompt"
+          ]
+        }
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "run_shell_command",
+        "description": "This tool executes a given shell command as `bash -c <command>`. Command can start background processes using `&`. Command is executed as a subprocess that leads its own process group. Command process group can be terminated as `kill -- -PGID` or signaled as `kill -s SIGNAL -- -PGID`.\n\n      The following information is returned:\n\n      Command: Executed command.\n      Directory: Directory (relative to project root) where command was executed, or `(root)`.\n      Stdout: Output on stdout stream. Can be `(empty)` or partial on error and for any unwaited background processes.\n      Stderr: Output on stderr stream. Can be `(empty)` or partial on error and for any unwaited background processes.\n      Error: Error or `(none)` if no error was reported for the subprocess.\n      Exit Code: Exit code or `(none)` if terminated by signal.\n      Signal: Signal number or `(none)` if no signal was received.\n      Background PIDs: List of background processes started or `(none)`.\n      Process Group PGID: Process group started or `(none)`",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "description": "Brief description of the command for the user. Be specific and concise. Ideally a single sentence. Can be up to 3 sentences for clarity. No line breaks.",
+              "type": "string"
+            },
+            "directory": {
+              "description": "(OPTIONAL) Directory to run the command in, if not the project root directory. Must be relative to the project root directory and must already exist.",
+              "type": "string"
+            },
+            "command": {
+              "description": "Exact bash command to execute as `bash -c <command>`",
+              "type": "string"
+            }
+          },
+          "required": [
+            "command"
+          ]
+        }
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "save_memory",
+        "description": "\nSaves a specific piece of information or fact to your long-term memory.\n\nUse this tool:\n\n- When the user explicitly asks you to remember something (e.g., \"Remember that I like pineapple on pizza\", \"Please save this: my cat's name is Whiskers\").\n- When the user states a clear, concise fact about themselves, their preferences, or their environment that seems important for you to retain for future interactions to provide a more personalized and effective assistance.\n\nDo NOT use this tool:\n\n- To remember conversational context that is only relevant for the current session.\n- To save long, complex, or rambling pieces of text. The fact should be relatively short and to the point.\n- If you are unsure whether the information is a fact worth remembering long-term. If in doubt, you can ask the user, \"Should I remember that for you?\"\n\n## Parameters\n\n- `fact` (string, required): The specific fact or piece of information to remember. This should be a clear, self-contained statement. For example, if the user says \"My favorite color is blue\", the fact would be \"My favorite color is blue\".\n",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "fact": {
+              "description": "The specific fact or piece of information to remember. Should be a clear, self-contained statement.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "fact"
+          ]
+        }
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "web_search",
+        "description": "Performs a web search using Web Search and returns the results. This tool is useful for finding information on the internet based on a query.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "description": "The search query to find information on the web.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "todo_write",
+        "description": "Use this tool to create and manage a structured task list for your current coding session. This helps you track progress, organize complex tasks, and demonstrate thoroughness to the user.\nIt also helps the user understand the progress of the task and overall progress of their requests.\n\n## When to Use This Tool\nUse this tool proactively in these scenarios:\n\n1. Complex multi-step tasks - When a task requires 3 or more distinct steps or actions\n2. Non-trivial and complex tasks - Tasks that require careful planning or multiple operations\n3. User explicitly requests todo list - When the user directly asks you to use the todo list\n4. User provides multiple tasks - When users provide a list of things to be done (numbered or comma-separated)\n5. After receiving new instructions - Immediately capture user requirements as todos\n6. When you start working on a task - Mark it as in_progress BEFORE beginning work. Ideally you should only have one todo as in_progress at a time\n7. After completing a task - Mark it as completed and add any new follow-up tasks discovered during implementation\n\n## When NOT to Use This Tool\n\nSkip using this tool when:\n1. There is only a single, straightforward task\n2. The task is trivial and tracking it provides no organizational benefit\n3. The task can be completed in less than 3 trivial steps\n4. The task is purely conversational or informational\n\nNOTE that you should not use this tool if there is only one trivial task to do. In this case you are better off just doing the task directly.\n\n## Examples of When to Use the Todo List\n\n<example>\nUser: I want to add a dark mode toggle to the application settings. Make sure you run the tests and build when you're done!\nAssistant: I'll help add a dark mode toggle to your application settings. Let me create a todo list to track this implementation.\n*Creates todo list with the following items:*\n1. Create dark mode toggle component in Settings page\n2. Add dark mode state management (context/store)\n3. Implement CSS-in-JS styles for dark theme\n4. Update existing components to support theme switching\n5. Run tests and build process, addressing any failures or errors that occur\n*Begins working on the first task*\n\n<reasoning>\nThe assistant used the todo list because:\n1. Adding dark mode is a multi-step feature requiring UI, state management, and styling changes\n2. The user explicitly requested tests and build be run afterward\n3. The assistant inferred that tests and build need to pass by adding \"Ensure tests and build succeed\" as the final task\n</reasoning>\n</example>\n\n<example>\nUser: Help me rename the function getCwd to getCurrentWorkingDirectory across my project\nAssistant: Let me first search through your codebase to find all occurrences of 'getCwd'.\n*Uses grep or search tools to locate all instances of getCwd in the codebase*\nAssistant: I've found 15 instances of 'getCwd' across 8 different files. Let me create a todo list to track these changes.\n*Creates todo list with specific items for each file that needs updating*\n\n<reasoning>\nThe assistant used the todo list because:\n1. First, the assistant searched to understand the scope of the task\n2. Upon finding multiple occurrences across different files, it determined this was a complex task with multiple steps\n3. The todo list helps ensure every instance is tracked and updated systematically\n4. This approach prevents missing any occurrences and maintains code consistency\n</reasoning>\n</example>\n\n\n<example>\nUser: I need to implement these features for my e-commerce site: user registration, product catalog, shopping cart, and checkout flow.\nAssistant: I'll help implement these features. First, let's add all the features to the todo list.\n*Creates a todo list breaking down each feature into specific tasks based on the project architecture*\nAssistant: Let's start with user registration. This will involve creating database models, API endpoints, and frontend forms that integrate with your existing authentication system.\n\n<reasoning>\nThe assistant used the todo list because:\n1. The user provided multiple complex features to implement in a comma separated list\n2. The todo list helps organize these large features into manageable tasks\n3. This approach allows for tracking progress across the entire implementation\n</reasoning>\n</example>\n\n<example>\nUser: Can you help optimize my React application? It's rendering slowly and has performance issues.</user>\nAssistant: I'll help optimize your React application. First, let me examine your codebase to identify potential performance bottlenecks.\n*Reviews component structure, render patterns, state management, and data fetching*\nAssistant: After analyzing your codebase, I've identified several performance issues. Let me create a todo list to track our optimization efforts.\n*Creates todo list with items like: 1) Implement memoization for expensive calculations in ProductList, 2) Add virtualization for long lists in Dashboard, 3) Optimize image loading in Gallery component, 4) Fix state update loops in ShoppingCart, 5) Review bundle size and implement code splitting*\nLet's start by implementing memoization for the expensive calculations in your ProductList component.</assistant>\n\n<reasoning>\nThe assistant used the todo list because:\n1. First, the assistant examined the codebase to identify specific performance issues\n2. Based on this analysis, it identified multiple optimization opportunities\n3. Performance optimization is a non-trivial task requiring multiple steps\n4. The todo list helps methodically track improvements across different components\n5. This systematic approach ensures all performance bottlenecks are addressed\n</reasoning>\n</example>\n\n## Examples of When NOT to Use the Todo List\n\n<example>\nUser: How do I print 'Hello World' in Python?\nAssistant: In Python, you can print \"Hello World\" with this simple code:\n\npython\nprint(\"Hello World\")\n\nThis will output the text \"Hello World\" to the console when executed.</assistant>\n\n<reasoning>\nThe assistant did not use the todo list because this is a single, trivial task that can be completed in one step. There's no need to track multiple tasks or steps for such a straightforward request.\n</reasoning>\n</example>\n\n<example>\nUser: What does the git status command do?\nAssistant: The git status command shows the current state of your working directory and staging area. It displays which changes have been staged, which haven't, and which files aren't being tracked by Git. This is a fundamental command for understanding the current state of your repository before making commits.\n\n<reasoning>\nThe assistant did not use the todo list because this is an informational request with no actual coding task to complete. The user is simply asking for an explanation, not for the assistant to perform multiple steps or tasks.\n</reasoning>\n</example>\n\n</example>\n\n<example>\nUser: Run npm install for me and tell me what happens.\nAssistant: I'll run the npm install command for you.\n\n*Executes: npm install*\n\nThe command completed successfully. Here's the output:\n[Output of npm install command]\n\nAll dependencies have been installed according to your package.json file.\n\n<reasoning>\nThe assistant did not use the todo list because this is a single command execution with immediate results. There are no multiple steps to track or organize, making the todo list unnecessary for this straightforward task.\n</reasoning>\n</example>\n\n## Task States and Management\n\n1. **Task States**: Use these states to track progress:\n   - pending: Task not yet started\n   - in_progress: Currently working on (limit to ONE task at a time)\n   - completed: Task finished successfully\n\n2. **Task Management**:\n   - Update task status in real-time as you work\n   - Mark tasks complete IMMEDIATELY after finishing (don't batch completions)\n   - Only have ONE task in_progress at any time\n   - Complete current tasks before starting new ones\n   - Remove tasks that are no longer relevant from the list entirely\n\n3. **Task Completion Requirements**:\n   - ONLY mark a task as completed when you have FULLY accomplished it\n   - If you encounter errors, blockers, or cannot finish, keep the task as in_progress\n   - When blocked, create a new task describing what needs to be resolved\n   - Never mark a task as completed if:\n     - Tests are failing\n     - Implementation is partial\n     - You encountered unresolved errors\n     - You couldn't find necessary files or dependencies\n\n4. **Task Breakdown**:\n   - Create specific, actionable items\n   - Break complex tasks into smaller, manageable steps\n   - Use clear, descriptive task names\n\n## important\n- Return valid json input\n\n## tool param example\n{\"todos\": [{\"id\": \"1\", \"task\": \"Create the basic HTML structure with a checkerboard grid\", \"status\": \"completed\"}, {\"id\": \"2\", \"task\": \"Add CSS styling for the board, squares, and pieces\", \"status\": \"completed\"}, {\"id\": \"3\", \"task\": \"Implement JavaScript game logic for piece movement and jumps\", \"status\": \"in_progress\"}, {\"id\": \"4\", \"task\": \"Add game state management (player turns, win conditions)\", \"status\": \"pending\"}, {\"id\": \"5\", \"task\": \"Test the game functionality and fix any issues\", \"status\": \"pending\"}]}\n\nWhen in doubt, use this tool. Being proactive with task management demonstrates attentiveness and ensures you complete all requirements successfully.\n",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "todos": {
+              "description": "The updated todo list",
+              "type": "array"
+            }
+          },
+          "required": [
+            "todos"
+          ]
+        }
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "todo_read",
+        "description": "Use this tool to read the current to-do list for the session. This tool should be used proactively and frequently to ensure that you are aware of\nthe status of the current task list. You should make use of this tool as often as possible, especially in the following situations:\n- At the beginning of conversations to see what's pending\n- Before starting new tasks to prioritize work\n- When the user asks about previous tasks or plans\n- Whenever you're uncertain about what to do next\n- After completing tasks to update your understanding of remaining work\n- After every few messages to ensure you're on track\n\nUsage:\n- This tool takes in no parameters. So leave the input blank or empty. DO NOT include a dummy object, placeholder string or a key like \"input\" or \"empty\". LEAVE IT BLANK.\n- Returns a list of todo items with their status, priority, and content\n- Use this information to track progress and plan next steps\n- If no todos exist yet, an empty list will be returned",
+        "parameters": {
+          "description": "No input is required, leave this field blank. NOTE that we do not require a dummy object, placeholder string or a key like \"input\" or \"empty\". LEAVE IT BLANK.",
+          "type": "object",
+          "properties": {}
+        }
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "multi_edit",
+        "description": "This is a tool for making multiple edits to a single file in one operation. It is built on top of the replace tool and allows you to perform multiple find-and-replace operations efficiently. Prefer this tool over the replace tool when you need to make multiple edits to the same file.\n\nBefore using this tool:\n\n1. Use the Read tool to understand the file's contents and context\n2. Verify the directory path is correct\n\nTo make multiple file edits, provide the following:\n1. file_path: The absolute path to the file to modify (must be absolute, not relative)\n2. edits: An array of edit operations to perform, where each edit contains:\n   - old_string: The text to replace (must match the file contents exactly, including all whitespace and indentation)\n   - new_string: The edited text to replace the old_string\n   - replace_all: Replace all occurences of old_string. This parameter is optional and defaults to false.\n\nIMPORTANT:\n- All edits are applied in sequence, in the order they are provided\n- Each edit operates on the result of the previous edit\n- All edits must be valid for the operation to succeed - if any edit fails, none will be applied\n- This tool is ideal when you need to make several changes to different parts of the same file\n- For Jupyter notebooks (.ipynb files), use the NotebookEdit instead\n\nCRITICAL REQUIREMENTS:\n1. All edits follow the same requirements as the single Edit tool\n2. The edits are atomic - either all succeed or none are applied\n3. Plan your edits carefully to avoid conflicts between sequential operations\n\nWARNING:\n- The tool will fail if edits.old_string doesn't match the file contents exactly (including whitespace)\n- The tool will fail if edits.old_string and edits.new_string are the same\n- Since edits are applied in sequence, ensure that earlier edits don't affect the text that later edits are trying to find\n\nWhen making edits:\n- Ensure all edits result in idiomatic, correct code\n- Do not leave the code in a broken state\n- Always use absolute file paths (starting with /)\n- Only use emojis if the user explicitly requests it. Avoid adding emojis to files unless asked.\n- Use replace_all for replacing and renaming strings across the file. This parameter is useful if you want to rename a variable for instance.\n\nIf you want to create a new file, use:\n- A new file path, including dir name if needed\n- First edit: empty old_string and the new file's contents as new_string\n- Subsequent edits: normal edit operations on the created content",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "file_path": {
+              "description": "The absolute path to the file to modify",
+              "type": "string"
+            },
+            "edits": {
+              "description": "Array of edit operations to perform sequentially on the file",
+              "type": "array"
+            }
+          },
+          "required": [
+            "file_path",
+            "edits"
+          ]
+        }
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "task",
+        "description": "Launch a new agent to handle complex, multi-step tasks autonomously. \n\nAvailable agent types and the tools they have access to:\n- general-purpose: For complex research, code searching, and multi-step tasks (Tools: read_file, run_shell_command, glob, search_file_content, list_directory, multi_edit, replace, write_file, todo_read, todo_write, web_fetch, web_search)\n\n\n## CRITICAL: Agent Type Naming Rules\n\n**IMPORTANT**: When using the Task tool, the subagent_type parameter MUST be EXACTLY the same as the agent type name listed above. Do not modify, abbreviate, or change the naming convention.\n\n**Valid agent type names** (copy exactly as written):\n- \"general-purpose\"\n\n\n**Examples of CORRECT usage:**\n- For agent type \"code-reviewer\" → subagent_type: \"code-reviewer\" \n- For agent type \"general-purpose\" → subagent_type: \"general-purpose\"\n- For agent type \"frontend-developer\" → subagent_type: \"frontend-developer\"\n\n**Examples of INCORRECT usage:**\n- code-reviewer → code_review ❌\n- general-purpose → general_purpose \n- frontend-developer → frontend_developer ❌\n\n## Tool Usage Guidelines\n\nWhen to use the Task tool:\n- When you are instructed to execute custom slash commands. Use the Task tool with the slash command invocation as the entire prompt. The slash command can take arguments. For example: Task(description=\"Check the file\", prompt=\"/check-file path/to/file.py\")\n- For complex, multi-step tasks that match the agent descriptions above\n\nWhen NOT to use the Task tool:\n- If you want to read a specific file path, use the read_file or glob tool instead of the Task tool, to find the match more quickly\n- If you are searching for a specific class definition like \"class Foo\", use the glob tool instead, to find the match more quickly\n- If you are searching for code within a specific file or set of 2-3 files, use the read_file tool instead of the Task tool, to find the match more quickly\n- Other tasks that are not related to the agent descriptions above\n\n## Usage Notes\n\n1. Launch multiple agents concurrently whenever possible, to maximize performance; to do that, use a single message with multiple tool uses\n2. When the agent is done, it will return a single message back to you. The result returned by the agent is not visible to the user. To show the user the result, you should send a text message back to the user with a concise summary of the result.\n3. Each agent invocation is stateless. You will not be able to send additional messages to the agent, nor will the agent be able to communicate with you outside of its final report. Therefore, your prompt should contain a highly detailed task description for the agent to perform autonomously and you should specify exactly what information the agent should return back to you in its final and only message to you.\n4. The agent's outputs should generally be trusted\n5. Clearly tell the agent whether you expect it to write code or just to do research (search, file reads, web fetches, etc.), since it is not aware of the user's intent\n6. If the agent description mentions that it should be used proactively, then you should try your best to use it without the user having to ask for it first. Use your judgement.\n\n## Example Usage\n\n<example>\nuser: \"Please write a function that checks if a number is prime\"\nassistant: Sure let me write a function that checks if a number is prime\nassistant: First let me use the write_file tool to write a function that checks if a number is prime\nassistant: I'm going to use the write_file tool to write the following code:\n<code>\nfunction isPrime(n) {\n  if (n <= 1) return false\n  for (let i = 2; i * i <= n; i++) {\n    if (n % i === 0) return false\n  }\n  return true\n}\n</code>\n<commentary>\nSince a significant piece of code was written and the task was completed, now use the code-reviewer agent to review the code\n</commentary>\nassistant: Now let me use the code-reviewer agent to review the code\nassistant: Uses the task tool with subagent_type: \"code-reviewer\"\n</example>\n\n<example>\nuser: \"Hello\"\n<commentary>\nSince the user is greeting, use the greeting-responder agent to respond with a friendly joke\n</commentary>\nassistant: I'm going to use the task tool with subagent_type: \"greeting-responder\"\n</example>",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "description": "A short (3-5 word) description of the task",
+              "type": "string"
+            },
+            "subagent_type": {
+              "description": "The type of specialized agent to use for this task",
+              "type": "string"
+            },
+            "prompt": {
+              "description": "The task for the agent to perform",
+              "type": "string"
+            }
+          },
+          "required": [
+            "description",
+            "prompt",
+            "subagent_type"
+          ]
+        }
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "name": "exit_plan_mode",
+        "description": "\nUse this tool when you are in plan mode and have finished presenting your plan and are ready to code. This will prompt the user to exit plan mode. \nIMPORTANT: Only use this tool when the task requires planning the implementation steps of a task that requires writing code. For research tasks where you're gathering information, searching files, reading files or in general trying to understand the codebase - do NOT use this tool.\n\nEg. \n1. Initial task: \"Search for and understand the implementation of vim mode in the codebase\" - Do not use the exit plan mode tool because you are not planning the implementation steps of a task.\n2. Initial task: \"Help me implement yank mode for vim\" - Use the exit plan mode tool after you have finished planning the implementation steps of the task.\n",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "plan": {
+              "description": "The plan you came up with, that you want to run by the user for approval. Supports markdown. The plan should be pretty concise.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "plan"
+          ]
+        }
+      },
+      "type": "function"
+    }
+  ]

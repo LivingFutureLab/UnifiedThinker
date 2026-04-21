@@ -1,0 +1,62 @@
+# basic
+train_bs: &bs 1
+lr: &lr 1e-5
+#token_length: &token_length 768
+gradient_accumulation_steps: 4
+checkpointing_steps: 1000 #5000
+
+# exp save dir
+oss_path: /tmp//checkpoints/qwenvl_und_exp/notebook_debug/
+
+qwenvl_path: &qwenvl_path /tmp//checkpoints/Qwen3-VL-8B-Instruct
+
+# buffer 长度分组采样 
+enable_buffered_length_sorted: true
+
+# train config
+seed: 24
+mixed_precision: 'bf16'
+vae_encode_batch_size: *bs
+max_train_steps: 20000
+max_grad_norm: 1.0
+max_train_epochs: 20
+
+
+# model config
+model:
+  turn_on_lora: true
+  lora_r: 64
+  lora_alpha: 64
+  gradient_checkpointing: true
+
+
+train_data_und: # multimodal understanding data
+  data_type: local_thinker
+  data_params: 
+    data_files: reason_edit_cot_for_thinker_training_72k.jsonl
+    # user params
+    qwenvl_pretrained: *qwenvl_path
+    max_sequent_length: 16384 #8192 #4096
+
+
+dataloader:
+  batch_size: *bs
+  num_workers: 4
+  prefetch_factor: 4
+  shuffle: false
+  drop_last: true
+  pin_memory: true
+
+
+# optim config
+optim:
+  optim_class: AdamW
+  scale_lr: false
+  optim_params:
+    lr: *lr
+    betas:
+      - 0.9
+      - 0.999
+    weight_decay: 0.01
+  lr_scheduler: constant
+  lr_warmup_steps: 10

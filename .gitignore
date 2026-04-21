@@ -1,0 +1,17 @@
+# mdl conf
+xdl*.json*
+
+# ckpt
+*.bin
+*.pt
+*.pth
+
+.vscode
+.cache
+
+__depred__*
+_depred_*
+
+__pycache__/
+ossutil_output/
+output/

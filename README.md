@@ -6,8 +6,23 @@ Yinchao Ma<sup>2</sup>, Jun Song<sup>2†</sup>, Tiezheng Ge<sup>2</sup>, Cheng 
 <sup>*</sup> Equal contribution &emsp; <sup>†</sup> Corresponding authors
 <br><br>
 
-<a href="https://arxiv.org/abs/2601.03127"><img src="https://img.shields.io/badge/arXiv-2601.03127-b31b1b" alt="arXiv"></a> <a href="Models"><img src="https://img.shields.io/badge/Models-Coming%20Soon-9e9e9e" alt="Models Coming Soon"></a>
-<a href="#"><img src="https://img.shields.io/badge/Data-HieraReason--40K%20Coming%20Soon-9e9e9e" alt="Data Coming Soon"></a>
+
+
+
+<a href="https://chouss911.github.io/UnifiedThinker/">
+    <img src="https://img.shields.io/badge/Project%20Page-Visit%20Now-blue" alt="Project Page">
+</a>
+<a href="https://arxiv.org/abs/2601.03127">
+    <img src="https://img.shields.io/badge/arXiv- UnifiedThinkerr-b31b1b" alt="arXiv">
+</a> 
+<a href="https://huggingface.co/datasets/demo911/HieraReason_40K/tree/main">
+    <img src="https://img.shields.io/badge/Data-HieraReason--40K-yellow" alt="Data">
+</a>
+<a href="Models">
+    <img src="https://img.shields.io/badge/Models-Coming%20Soon-9e9e9e" alt="Models Coming Soon">
+</a> 
+
+
 
 
 </div>
@@ -17,16 +32,13 @@ Unified Thinker is a **task-agnostic reasoning core** for general image generati
 ![pipeline](assets/case_page-0001.jpg)
 ---
 
-## News
-- Paper is now available.
-- **[Planned]** Code / checkpoints / HieraReason-40K will be released soon. Stay tuned.
+## 📢 News
+- 🎉 **Paper & Code & HieraReason-40K** is now available!
+- 🏆 **Unified Thinker** is accepted by **ACL 2026**!
+- ⏳ **[Planned]** checkpoints  will be released soon — Stay tuned! 🚀
 
----
 
-<!-- ## Abstract (Short)
 
-Despite strong visual fidelity, open-source generative models still struggle with logic-intensive instructions. Unified Thinker introduces a modular think-then-execute architecture: the Thinker converts instructions into a **hierarchical, generator-friendly plan** (intent summary, explicit constraints, ordered sub-goals, and an executable prompt/spec), while the Generator focuses on pixel synthesis. A two-stage training recipe—**joint supervised fine-tuning** plus **execution-led dual-phase RL (GRPO)**—grounds reasoning in pixel-level feedback and improves instruction following on both **text-to-image** and **image editing** tasks. -->
-<!-- --- -->
 
 ## Highlights
 
@@ -36,38 +48,49 @@ Despite strong visual fidelity, open-source generative models still struggle wit
 - **Dual-phase RL** with generator-in-the-loop to align plans with actual visual outcomes.
 - **Cross-generator transfer**: Thinker can be plugged into different diffusion backbones.
 
----
+## 🛠 Preparation
+
+### Data & Model Setup
+
+1. **Dataset Structure**: 
+   Create local directories and symlink or download the datasets as follows:
+   - **UniREdit-Data-100K**: `data/UniREdit-Data-100K/uniredit-data/original_images/`
+   - **Banana-400K**: `data/Banana-400K/source_images/`
+   - **[HieraReason-40K](https://huggingface.co/datasets/demo911/HieraReason_40K/tree/main)**: Download `und.jsonl` and `gen.jsonl`  to `data/`.
+
+2. **Pre-trained Weights**:
+   Download and organize the models in the `model/` directory:
+   - `model/Qwen-Image-Edit-2509` (The Image Editor)
+   - `model/Qwen2.5-VL-7B-Instruct` (The Reasoning Core)
+
+## Setup
+```bash
+pip install -U pip
+pip install torch torchvision 
+pip install -r requirements.txt
+```
+
+### Training
+
+```bash
+bash scripts/thinker_editor/train.sh
+```
+
+### Inference
+
+```bash
+bash benchmark/image-generation/infer_qwen_image_edit_think.sh
+```
+
 
 ## Project Status
 
 This repository currently serves as the **project homepage**.
 
-- [ ] Training & inference code
-- [ ] Model checkpoints (Thinker / Generator adapters)
-- [ ] HieraReason-40K data & processing scripts
-- [ ] Reproduction scripts for benchmarks
-
-If you would like to be notified when releases happen, please **watch** this repo.
-
----
-
-## Method Overview
-
-**Thinker (MLLM)**  
-Input: instruction (+ optional reference image)  
-Output: structured reasoning trace + **executable visual specification** (enhanced prompt)
-
-**Generator (Diffusion model)**  
-Input: enhanced prompt/spec (+ optional reference image for editing)  
-Output: final image
-
-Training:
-1. **Stage 1 — Joint Supervised Fine-Tuning**  
-   - Teach the Thinker the planning interface using HieraReason-40K  
-   - Align Generator to the enhanced prompts
-2. **Stage 2 — Dual-Phase Reinforcement Learning**  
-   - **Phase 2.1 (Thinker RL)**: select plans that yield better images under constraint-based rewards  
-   - **Phase 2.2 (Generator RL)**: improve execution fidelity with stochastic rollouts + relative advantages
+-  Training & inference code
+-  Model checkpoints (Thinker / Generator adapters)
+-  HieraReason-40K data & processing scripts
+-  Reproduction scripts for benchmarks
 
 <!-- ---
 
@@ -94,7 +117,7 @@ Unified Thinker is evaluated on four settings:
 --- 
 ## Citation
 
-If you find this work useful, please cite:
+📖 If you find this work useful, please cite:
 
 ```bibtex
 @misc{zhou2026unifiedthinker,

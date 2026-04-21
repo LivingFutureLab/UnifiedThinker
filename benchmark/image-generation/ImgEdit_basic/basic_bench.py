@@ -1,0 +1,139 @@
+import base64
+import os
+import json
+import argparse
+from openai import OpenAI
+from tqdm import tqdm
+from tenacity import retry, wait_exponential, stop_after_attempt
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+from step1_get_avgscore import extract_scores_and_average 
+
+
+def load_prompts(prompts_json_path):
+    with open(prompts_json_path, 'r') as f:
+        return json.load(f)
+
+def image_to_base64(image_path):
+    try:
+        with open(image_path, "rb") as image_file:
+            return base64.b64encode(image_file.read()).decode('utf-8')
+    except FileNotFoundError:
+        print(f"File {image_path} not found.")
+        return None
+
+# @retry(wait=wait_exponential(multiplier=1, min=2, max=2), stop=stop_after_attempt(100))
+def call_gpt(original_image_path, result_image_path, edit_prompt, edit_type, prompts):
+    for _ in range(200):
+        try:
+            original_image_base64 = image_to_base64(original_image_path)
+            result_image_base64 = image_to_base64(result_image_path)
+
+            if not original_image_base64 or not result_image_base64:
+                return {"error": "Image conversion failed"}
+
+            # client = OpenAI(
+            #     api_key="api-key",
+            #     base_url="url"
+            # )
+            client = OpenAI(
+                api_key="4ee222a0cc522b7872ed2334fdd65bac",
+                base_url="https://idealab.alibaba-inc.com/api/openai/v1",
+            )
+
+            prompt = prompts[edit_type]
+            full_prompt = prompt.replace('<edit_prompt>', edit_prompt)
+
+            response = client.chat.completions.create(
+                #model="gpt-4o",
+                model="gpt-41-0414-global",
+                stream=False,
+                messages=[{
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": full_prompt},
+                        {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{original_image_base64}"}},
+                        {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{result_image_base64}"}}
+                    ]
+                }]
+            )
+
+            return response
+        except Exception as e:
+            print(f"Error in calling GPT API: {e}")
+
+def process_single_item(key, item, result_img_folder, origin_img_root, prompts):
+    result_img_name = f"{key}.png"
+    result_img_path = os.path.join(result_img_folder, result_img_name)
+    origin_img_path = os.path.join(origin_img_root, item['id'])
+    edit_prompt = item['prompt']
+    edit_type = item['edit_type']
+
+    response = call_gpt(origin_img_path, result_img_path, edit_prompt, edit_type, prompts)
+    return key, response.choices[0].message.content
+
+def process_json(edit_json, result_img_folder, origin_img_root, num_threads, prompts):
+    with open(edit_json, 'r') as f:
+        edit_infos = json.load(f)
+    
+    # 1. 修改：检查是否存在已有的结果文件，如果存在则加载
+    results_path = os.path.join(result_img_folder, 'result.json')
+    results = {}
+    if os.path.exists(results_path):
+        try:
+            with open(results_path, 'r') as f:
+                results = json.load(f)
+            print(f"Loaded {len(results)} existing results from {results_path}")
+        except json.JSONDecodeError:
+            print("Existing result.json is corrupted. Starting from scratch.")
+    # 2. 筛选出还需要跑的任务
+    tasks_to_run = {}
+    for key, item in edit_infos.items():
+        if key in results:
+            avg = extract_scores_and_average(results[key])
+            if avg is not None:
+                continue # 如果key已经在结果里，跳过
+        tasks_to_run[key] = item
+    print("Left {} samples to run".format(len(tasks_to_run)))
+
+
+    #results = {}
+    with ThreadPoolExecutor(max_workers=num_threads) as executor:
+        # future_to_key = {
+        #     executor.submit(process_single_item, key, item, result_img_folder, origin_img_root, prompts): key
+        #     for key, item in edit_infos.items()
+        # }
+        future_to_key = {
+            executor.submit(process_single_item, key, item, result_img_folder, origin_img_root, prompts): key
+            for key, item in tasks_to_run.items()
+        }
+
+        for future in tqdm(as_completed(future_to_key), total=len(future_to_key), desc="Processing edits"):
+            key = future_to_key[future]
+            try:
+                k, result = future.result()
+                results[k] = result
+            except Exception as e:
+                print(f"Error processing key {key}: {e}")
+                results[key] = {"error": str(e)}
+
+    #results_path = os.path.join(result_img_folder, 'result.json')
+    with open(results_path, 'w') as f:
+        json.dump(results, f, indent=4)
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Evaluate image edits using GPT")
+    parser.add_argument('--result_img_folder', type=str, required=True, help="Folder with subfolders of edited images")
+    parser.add_argument('--edit_json', type=str, required=True, help="Path to JSON file mapping keys to metadata")
+    parser.add_argument('--origin_img_root', type=str, required=True, help="Root path where original images are stored")
+    parser.add_argument('--num_processes', type=int, default=32, help="Number of parallel threads")
+    parser.add_argument('--prompts_json', type=str, required=True, help="JSON file containing prompts") 
+    args = parser.parse_args()
+
+    prompts = load_prompts(args.prompts_json)  
+
+    process_json(args.edit_json, args.result_img_folder, args.origin_img_root, args.num_processes, prompts)
+
+if __name__ == "__main__":
+    main()

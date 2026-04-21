@@ -1,0 +1,105 @@
+# basic
+train_bs: &bs 1
+lr: &lr 1e-5
+gradient_accumulation_steps: 8
+checkpointing_steps: 1000 #5000
+validation_steps: 500
+
+oss_path: /tmp/checkpoints/thinker_editor   # exp save dir
+
+edit_model_path: &edit_model_path model/Qwen-Image-Edit-2509
+thinker_model_path: &thinker_model_path model/Qwen2.5-vl-7B-Instruct/
+
+# buffer 长度分组采样 
+enable_buffered_length_sorted: true
+
+# train config
+seed: 24
+mixed_precision: 'bf16'
+vae_encode_batch_size: *bs
+max_train_steps: 200000
+max_grad_norm: 1.0
+max_train_epochs: 100
+
+# undstand task loss weight
+loss_weight_und: 0.2
+
+# model config
+model:
+  loader:
+    loader_func: src.model.load_model.load_thinker_editor
+    loader_params:
+      edit_model_path: *edit_model_path
+      thinker_model_path: *thinker_model_path
+      
+  prepare:
+    pre_func: src.model.load_model.prepare_thinker_editor
+    pre_params:
+      thinker_lora: true
+      gradient_checkpointing_thinker: true  # text_encoder 是一个共享模块。loss_gen 的计算图依赖它，loss_und 的计算图也依赖它, 不能开梯度累计, 除非使用 no_sync
+      dit_lora: true
+      gradient_checkpointing_dit: true
+      trainable_module: ["thinker", "dit"]
+      lora_r: 64
+      lora_alpha: 64
+
+    warp_func: src.model.warp_model.WarpModel
+    warp_params:
+      warp_key:
+        - thinker
+        - dit
+
+# trainer config
+trainer:
+  trainer_class: src.trainer.thinker_editor.Trainer
+  trainer_params:
+    noise_scheduler: lognorm_shift
+
+
+train_data_gen:
+  data_type: local_t2i_edit
+  data_params: 
+    # data_files: data/target_absolute.jsonl
+    data_files: data/HieraReason_gen.jsonl
+    # user params
+    text_drop: 0.1
+    adjust_ar: false
+    tgt_image_max_area: 1048576         # 1024 ** 2
+    cond_image_max_area: 1048576        # 1024 ** 2
+    multi_cond_image_max_area: 4194304  # 1024 * 1024 * 4
+    # Note: for tinker_editor, 使用 cot 替换 original prompt
+    replace_prompt_with_cot: True     
+
+
+train_data_und: # multimodal understanding data
+  data_type: local_und
+  data_params: 
+    # data_files: data/target_und.jsonl
+    data_files: data/HieraReason_und.jsonl
+    # user params
+    qwenvl_pretrained: *thinker_model_path
+    max_sequent_length: 8192
+
+dataloader:
+  batch_size: *bs
+  num_workers: 4
+  prefetch_factor: 4
+  shuffle: false
+  drop_last: true
+  pin_memory: true
+
+
+# optim config
+optim:
+  optim_class: AdamW
+  scale_lr: false
+  optim_params:
+    lr: *lr
+    betas:
+      - 0.9
+      - 0.999
+    weight_decay: 0.01
+  lr_scheduler: constant
+  lr_warmup_steps: 10
+
+

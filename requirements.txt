@@ -1,0 +1,25 @@
+torch
+accelerate
+transformers==4.57.1
+diffusers>=0.35.0
+peft
+omegaconf
+deepspeed==0.14.4
+prodigyopt
+came-pytorch
+qwen_vl_utils
+SentencePiece
+termcolor
+huggingface_hub
+safetensors
+torch>=2.1.0
+torchvision
+Pillow
+tqdm
+oss2
+# benchmark (optional)
+pyrallis
+demjson3
+modelscope
+mdl
+tqdm

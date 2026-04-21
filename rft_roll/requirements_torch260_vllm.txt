@@ -1,0 +1,27 @@
+-r requirements_common.txt
+
+## for vllm==0.8.4
+torch==2.6.0.*
+torchvision==0.21.0.*
+torchaudio==2.6.0.*
+
+flash-attn
+
+transformer-engine[pytorch]==2.2.0
+vllm==0.8.4
+deepspeed==0.16.4
+
+
+# jianchong.zq
+peft==0.15.0    # for image-edit-reward
+http://alimama-creative-public.oss-cn-zhangjiakou-internal.aliyuncs.com/linjinpeng.ljp/public_models/whl/diffusers-0.35.0.dev0-py3-none-any.whl
+#accelerate==0.34.2
+qwen_vl_utils
+transformers==4.57.1 # for qwen3-vl
+termcolor
+SentencePiece
+oss2
+prodigyopt
+shyaml
+pyrallis
+demjson3
