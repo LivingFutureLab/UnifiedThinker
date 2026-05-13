@@ -50,10 +50,13 @@ Unified Thinker is a **task-agnostic reasoning core** for general image generati
 
 
 ## 🎬 Demo Video
+
 <div align="center">
-  <!-- 替换为你实际的视频链接 -->
-  <video src="assets/demos.mp4" width="800px" controls autoplay loop muted>
-    Your browser does not support the video tag.
+  <video width="800px" controls autoplay loop muted playsinline>
+    <source src="assets/demos.mp4" type="video/mp4">
+    <!-- 如果 mp4 不起作用，浏览器会显示下面的文字 -->
+    Your browser does not support the video tag. 
+    <a href="assets/demos.mp4">Click here to download the video.</a>
   </video>
 </div>
 
