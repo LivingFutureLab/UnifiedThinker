@@ -105,7 +105,7 @@ class Trainer(BaseTrainer):
         assert len(raw_condition_images) == 1, "right now support batch_size 1"
         batch_size = 1
         raw_condition_images = raw_condition_images[0]
-        
+        # import pdb; pdb.set_trace()
         condition_image_sizes = []
         condition_images = []
         vae_image_sizes = []
@@ -193,7 +193,6 @@ class Trainer(BaseTrainer):
         if image_latents is not None:
             latent_model_input = torch.cat([noisy_latent, image_latents], dim=1)
         
-        # import pdb; pdb.set_trace()
         model_pred = self.model_dict["dit"](
                 hidden_states=latent_model_input.to(self.weight_dtype),
                 timestep=sigmas,
@@ -223,11 +222,14 @@ class Trainer(BaseTrainer):
                 
     def _train_step_und(self, batch):
         record_ids = batch.pop("record_ids", None)
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         for k in batch:
             batch[k] = batch[k].to(device=self.device)
             if k not in ["input_ids", "labels", "image_grid_thw"]:
-                batch[k] = batch[k].to(dtype=self.weight_dtype)    
+                batch[k] = batch[k].to(dtype=self.weight_dtype)
+                # 核心修复：手动开启 pixel_values 的梯度开关
+                if k == "pixel_values":
+                    batch[k].requires_grad_(True) 
         outputs = self.model_dict['thinker'](**batch)
         loss = outputs.loss
         
@@ -265,14 +267,16 @@ class Trainer(BaseTrainer):
         loss_dict_for_sync = {}
         
         assert "gen" in batch and "und" in batch, "Batch must contain 'gen' and 'und' data."
-
+        
         # inputs -> editor -> loss
+        # ------------------------------------------------
         loss_gen, loss_key = self._train_step_gen(batch["gen"])
         total_loss_for_logging += loss_gen
         loss_dict_for_sync[f"loss_gen_{loss_key}"] = loss_gen
+        # ------------------------------------------------
         
         # inputs -> thinker -> loss
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         loss_und = self._train_step_und(batch["und"])
         weighted_loss_und = loss_und * self.args.loss_weight_und
         total_loss_for_logging += weighted_loss_und

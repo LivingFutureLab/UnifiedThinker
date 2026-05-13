@@ -37,6 +37,18 @@ from src.utils.env_utils import (
 )
 from src.utils.io_utils import count_parameters
 from src.model.utils import download_model_weight_oss, download_model_weight
+import torch
+torch.autograd.set_detect_anomaly(True)
+import os
+
+# 强制禁用 CuDNN 自动调优，使用确定性算法，避免非法执行计划
+torch.backends.cudnn.benchmark = False
+torch.backends.cudnn.deterministic = True
+
+# 可选：如果上述无效，尝试禁用 CuDNN V8 API（针对较新版本的 PyTorch/CuDNN）
+os.environ['TORCH_CUDNN_V8_API_ENABLED'] = '0'
+torch.backends.cudnn.enabled = False
+
 
 if not in_notebook():
     import ml_tracker
@@ -289,7 +301,6 @@ def main(args):
         else:
             sorted_dataloader_gen = dataloader_gen
             sorted_dataloader_und = dataloader_und
-            
             
         for i, (batch_gen, batch_und) in enumerate(zip(sorted_dataloader_gen, sorted_dataloader_und)):
             if global_step >= args.max_train_steps:

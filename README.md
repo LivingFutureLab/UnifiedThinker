@@ -16,10 +16,10 @@ Yinchao Ma<sup>2</sup>, Jun Song<sup>2†</sup>, Tiezheng Ge<sup>2</sup>, Cheng 
     <img src="https://img.shields.io/badge/arXiv- UnifiedThinkerr-b31b1b" alt="arXiv">
 </a> 
 <a href="https://huggingface.co/datasets/demo911/HieraReason_40K/tree/main">
-    <img src="https://img.shields.io/badge/Data-HieraReason--40K-yellow" alt="Data">
+    <img src="https://img.shields.io/badge/Data-HieraReason--40K-orange" alt="Data">
 </a>
-<a href="Models">
-    <img src="https://img.shields.io/badge/Models-Coming%20Soon-9e9e9e" alt="Models Coming Soon">
+<a href="https://huggingface.co/demo911/UnifiedThinker-7B">
+    <img src="https://img.shields.io/badge/Model-UnifiedThinker-yellow" alt="Models Coming Soon">
 </a> 
 
 
@@ -35,7 +35,7 @@ Unified Thinker is a **task-agnostic reasoning core** for general image generati
 ## 📢 News
 - 🎉 **Paper & Code & HieraReason-40K** is now available!
 - 🏆 **Unified Thinker** is accepted by **ACL 2026**!
-- ⏳ **[Planned]** checkpoints  will be released soon — Stay tuned! 🚀
+- ⏳ **Checkpoint**  is now available!🚀
 
 
 
@@ -47,6 +47,16 @@ Unified Thinker is a **task-agnostic reasoning core** for general image generati
 - **HieraReason-40K**: hierarchical reasoning traces + executable enhanced prompts for cold start.
 - **Dual-phase RL** with generator-in-the-loop to align plans with actual visual outcomes.
 - **Cross-generator transfer**: Thinker can be plugged into different diffusion backbones.
+
+
+## 🎬 Demo Video
+<div align="center">
+  <!-- 替换为你实际的视频链接 -->
+  <video src="assets/demos.mp4" width="800px" controls autoplay loop muted>
+    Your browser does not support the video tag.
+  </video>
+</div>
+
 
 ## 🛠 Preparation
 
@@ -66,7 +76,6 @@ Unified Thinker is a **task-agnostic reasoning core** for general image generati
 ## Setup
 ```bash
 pip install -U pip
-pip install torch torchvision 
 pip install -r requirements.txt
 ```
 
@@ -76,13 +85,19 @@ pip install -r requirements.txt
 bash scripts/thinker_editor/train.sh
 ```
 
+
 ### Inference
 
+- **Single Image Inference (CLI)**:
 ```bash
-bash benchmark/image-generation/infer_qwen_image_edit_think.sh
-```
+bash /root/UnifiedThinker/inference/infer_single.sh
+  ```
 
-
+- **Interactive Demo (Gradio)**:
+If you prefer a web interface for a more intuitive experience, run:
+```bash
+bash /root/UnifiedThinker/inference/infer_gradio.sh
+  ```
 ## Project Status
 
 This repository currently serves as the **project homepage**.
