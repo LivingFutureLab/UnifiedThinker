@@ -1,0 +1,2 @@
+[2025-12-07 23:42:40] [base_config.py (203)] [INFO] [DRIVER 0 / 1][PID 81802] add timestamp to tensorboard log_dir /tmp/jianchong.zq/checkpoints/flow_grpo_image_edit/tensorboard/flow_grpo_image_edit/20251207-234240
+[2025-12-07 23:42:40] [base_config.py (206)] [INFO] [DRIVER 0 / 1][PID 81802] add exp_name to logging_dir /tmp/jianchong.zq/checkpoints/flow_grpo_image_edit/logs/flow_grpo_image_edit

@@ -1,0 +1,235 @@
+from itertools import product
+from typing import TYPE_CHECKING, Optional
+
+import torch
+from megatron.core import mpu
+from megatron.core.tensor_parallel import model_parallel_cuda_manual_seed
+from tqdm import tqdm
+from transformers import (
+    AutoConfig as HfAutoConfig,
+)
+from transformers import (
+    AutoModelForCausalLM,
+    AutoModelForImageTextToText,
+    AutoModelForVision2Seq,
+    AutoProcessor,
+    AutoTokenizer,
+)
+from transformers.dynamic_module_utils import get_class_from_dynamic_module
+from transformers.models.auto.auto_factory import _get_model_class
+
+from ...checkpointing import get_checkpoint_name, save_config_and_state_dict
+from ...training_args import DistributingParallelArguments
+from ...utils import get_logger
+from ..auto.config_auto import AutoConfig
+from .dist_converter import DistConverter
+from .model_converter import ModelConverter
+from .template import get_template
+
+
+if TYPE_CHECKING:
+    from ...training_args import DistributingParallelArguments
+    from .template import Template
+
+
+logger = get_logger(__name__)
+
+
+def _add_mca_state_dicts_to_hf(
+    model_converter: "ModelConverter", state_dicts, hf_state_dict, vp_stage: int, verbose: bool = True
+):
+    def log(msg):
+        if verbose:
+            logger.info(msg)
+
+    tp_rank, pp_rank, ep_rank = (
+        model_converter.dist_converter.tensor_model_parallel_rank,
+        model_converter.dist_converter.pipeline_model_parallel_rank,
+        model_converter.dist_converter.expert_model_parallel_rank,
+    )
+    for mca_name in state_dicts[0].keys():
+        if mca_name.endswith("._extra_state"):
+            continue
+        weights = [state_dict[mca_name] if mca_name in state_dict else None for state_dict in state_dicts]
+        converted_state_dict = model_converter.convert_to_hf({mca_name: weights}, vp_stage=vp_stage)
+        if converted_state_dict is not None and len(converted_state_dict) > 0:
+            for hf_name, hf_weight in converted_state_dict.items():
+                if hf_name in hf_state_dict:
+                    if not hf_weight.equal(hf_state_dict[hf_name]):
+                        raise ValueError(
+                            f"weight of hf_name:{hf_name} mca_name:{mca_name} in "
+                            f"tp_rank, pp_rank, ep_rank, vp_rank:{tp_rank} {pp_rank} {ep_rank} {vp_stage} "
+                            f"diff max:{torch.abs(hf_weight - hf_state_dict[hf_name]).max()}"
+                        )
+                hf_state_dict[hf_name] = hf_weight
+                log(f"mca_name: {mca_name} -> hf_name: {hf_name}")
+        else:
+            log(f"mca_name: {mca_name} added but not converted")
+
+
+def convert_checkpoint_to_hf(
+    model_name_or_path: str, save_directory: str, torch_dtype: Optional["torch.dtype"] = None, verbose: bool = True
+):
+    mca_config = AutoConfig.from_pretrained(model_name_or_path)
+    if mca_config is None:
+        raise ValueError("No mca config found in checkpoint")
+    if mca_config.hf_model_type is None:
+        raise ValueError("No hf model type found in mca config")
+    template: "Template" = get_template(mca_config.hf_model_type)
+    hf_config = template.convert_mca_to_hf_config(mca_config)
+    template.set_mca_config_for_ops(mca_config)
+    hf_state_dict = {}
+
+    mpu.set_expert_model_parallel_world_size(mca_config.expert_model_parallel_size)
+    mpu.set_pipeline_model_parallel_world_size(mca_config.pipeline_model_parallel_size)
+    mpu.set_tensor_model_parallel_world_size(mca_config.tensor_model_parallel_size)
+    if mca_config.virtual_pipeline_model_parallel_size is not None:
+        mpu.set_virtual_pipeline_model_parallel_world_size(mca_config.virtual_pipeline_model_parallel_size)
+
+    for pp_rank, ep_rank in product(
+        range(mca_config.pipeline_model_parallel_size), range(mca_config.expert_model_parallel_size)
+    ):
+        state_dicts = []
+        # TODO: use loader and support low_mem
+        for tp_rank in range(mca_config.tensor_model_parallel_size):
+            ckpt_name = get_checkpoint_name(
+                model_name_or_path,
+                tensor_rank=tp_rank,
+                pipeline_rank=pp_rank,
+                pipeline_parallel=mca_config.pipeline_model_parallel_size > 1,
+                expert_rank=ep_rank,
+                expert_parallel=mca_config.expert_model_parallel_size > 1,
+            )
+            state_dicts.append(torch.load(ckpt_name, map_location="cpu"))
+        virtual_pipe_on = (mca_config.virtual_pipeline_model_parallel_size or 1) > 1
+        mpu.set_pipeline_model_parallel_rank(pp_rank)
+        mpu.set_expert_model_parallel_rank(ep_rank)
+        mpu.set_tensor_model_parallel_rank(0)
+        model_converter = ModelConverter(
+            mca_config=mca_config,
+            pipeline_model_parallel_rank=pp_rank,
+            expert_model_parallel_rank=ep_rank,
+            tensor_model_parallel_rank=0,
+            verbose=verbose,
+            to_hf=True,
+        )
+        for i in range(mca_config.virtual_pipeline_model_parallel_size or 1):
+            if virtual_pipe_on:
+                mpu.set_virtual_pipeline_model_parallel_rank(i)
+            key = "model" + (str(i) if virtual_pipe_on else "")
+            virtual_state_dicts = [sd.pop(key) for sd in state_dicts]
+            _add_mca_state_dicts_to_hf(
+                model_converter, virtual_state_dicts, hf_state_dict, vp_stage=i, verbose=verbose
+            )
+
+    has_remote_code = hasattr(hf_config, "auto_map") and "AutoModelForCausalLM" in hf_config.auto_map
+    model_class = AutoModelForCausalLM
+    if type(hf_config) in AutoModelForVision2Seq._model_mapping.keys():
+        model_class = AutoModelForVision2Seq
+    elif type(hf_config) in AutoModelForImageTextToText._model_mapping.keys():
+        model_class = AutoModelForImageTextToText
+    if has_remote_code:
+        class_ref = hf_config.auto_map["AutoModelForCausalLM"]
+        model_class = get_class_from_dynamic_module(class_ref, mca_config.name_or_path)
+    else:
+        model_class = _get_model_class(hf_config, model_class._model_mapping)
+
+    model = model_class.from_pretrained(
+        None,
+        config=hf_config,
+        state_dict=hf_state_dict,
+        torch_dtype=torch_dtype if torch_dtype is not None else mca_config.params_dtype,
+        trust_remote_code=True,
+    )
+    model.save_pretrained(save_directory)
+    mca_config.save_hf_auto_map_files(save_directory)
+    tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, trust_remote_code=True)
+    try:
+        processor = AutoProcessor.from_pretrained(model_name_or_path, trust_remote_code=True)
+    except Exception as e:
+        logger.info(f"Processor was not found: {e}.")
+        processor = tokenizer
+    if processor is not None and "Processor" not in processor.__class__.__name__:
+        processor = None
+
+    if processor is not None:
+        setattr(processor, "tokenizer", tokenizer)
+    else:
+        processor = tokenizer
+    processor.save_pretrained(save_directory)
+
+
+def convert_checkpoint_to_mca(
+    model_name_or_path: str,
+    save_directory: str,
+    dist_args: "DistributingParallelArguments",
+    bf16: bool = False,
+    fp16: bool = False,
+    verbose: bool = True,
+):
+    dist_args.pipeline_model_parallel_size = dist_args.pipeline_model_parallel_size or 1
+    dist_args.tensor_model_parallel_size = dist_args.tensor_model_parallel_size or 1
+    dist_args.expert_model_parallel_size = dist_args.expert_model_parallel_size or 1
+    hf_config = HfAutoConfig.from_pretrained(model_name_or_path, trust_remote_code=True)
+    template: "Template" = get_template(hf_config.model_type)
+    mca_config = template.convert_hf_to_mca_config(hf_config, bf16=bf16, fp16=fp16, **dist_args.get_config_dict())
+    template.set_mca_config_for_ops(mca_config)
+    mpu.set_tensor_model_parallel_world_size(dist_args.tensor_model_parallel_size)
+    mpu.set_pipeline_model_parallel_world_size(dist_args.pipeline_model_parallel_size)
+    mpu.set_expert_model_parallel_world_size(dist_args.expert_model_parallel_size)
+    if dist_args.virtual_pipeline_model_parallel_size is not None:
+        mpu.set_virtual_pipeline_model_parallel_world_size(dist_args.virtual_pipeline_model_parallel_size)
+
+    for tp_rank, pp_rank, ep_rank in tqdm(
+        product(
+            range(dist_args.tensor_model_parallel_size),
+            range(dist_args.pipeline_model_parallel_size),
+            range(dist_args.expert_model_parallel_size),
+        ),
+        total=(
+            dist_args.tensor_model_parallel_size
+            * dist_args.pipeline_model_parallel_size
+            * dist_args.expert_model_parallel_size
+        ),
+        desc="Converting",
+        disable=not verbose,
+    ):
+        mpu.set_tensor_model_parallel_rank(tp_rank)
+        mpu.set_pipeline_model_parallel_rank(pp_rank)
+        mpu.set_expert_model_parallel_rank(ep_rank)
+        model_parallel_cuda_manual_seed(42)
+        model_converter = ModelConverter(
+            mca_config=mca_config,
+            verbose=verbose,
+            tensor_model_parallel_rank=tp_rank,
+            pipeline_model_parallel_rank=pp_rank,
+            expert_model_parallel_rank=ep_rank,
+        )
+
+        mca_state_dict = {}
+        for i in range(mca_config.virtual_pipeline_model_parallel_size or 1):
+            key = "model"
+            if dist_args.virtual_pipeline_model_parallel_size is not None:
+                key = f"model{i}"
+                mpu.set_virtual_pipeline_model_parallel_rank(i)
+            mca_state_dict[key] = model_converter.load_mca_state_dict_from_hf(model_name_or_path, vp_stage=i)
+        if verbose:
+            logger.info(f"Saving ({tp_rank=} {pp_rank=} {ep_rank=}) model to {save_directory}")
+        save_config_and_state_dict(save_directory, mca_config, mca_state_dict)
+        template.release()
+
+    tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, trust_remote_code=True)
+    try:
+        processor = AutoProcessor.from_pretrained(model_name_or_path, trust_remote_code=True)
+    except Exception as e:
+        if verbose:
+            logger.info(f"Processor was not found: {e}.")
+        processor = tokenizer
+    if processor is not None and "Processor" not in processor.__class__.__name__:
+        processor = None
+
+    if processor is not None:
+        setattr(processor, "tokenizer", tokenizer)
+    else:
+        processor = tokenizer
+    processor.save_pretrained(save_directory)

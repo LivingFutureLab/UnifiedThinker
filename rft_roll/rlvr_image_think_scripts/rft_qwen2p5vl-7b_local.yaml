@@ -1,0 +1,228 @@
+defaults:
+  - ../examples/config/deepspeed_zero@_here_
+  - ../examples/config/deepspeed_zero2@_here_
+  - ../examples/config/deepspeed_zero3@_here_
+  - ../examples/config/deepspeed_zero3_cpuoffload@_here_
+
+hydra:
+  run:
+    dir: .
+  output_subdir: null
+
+# 调试环境配置  
+system_envs:
+  USE_MODELSCOPE: '1'   # ROLL 会从 ModelScope 下载模型,而不是从 HuggingFace Hub 下载
+  #RAY_PROFILING: "1"
+  #RAY_DEBUG: "legacy"   # 启用 pdb 调试  
+
+profiler_output_dir: /tmp/checkpoints/rlvr_image_edit_think/profile/local_debug
+
+exp_name: "rlvr_image_think"
+seed: 42
+logging_dir: /tmp/rlvr_image_edit_think/logs
+output_dir: /tmp/rlvr_image_edit_think
+
+checkpoint_config:
+  type: file_system
+  output_dir: /tmp/rlvr_image_edit_think_8gpu/ablation_risebench
+
+
+track_with: tensorboard
+tracker_kwargs:
+  log_dir: /tmp/rlvr_image_edit_think/tensorboard
+
+max_steps: 1000
+save_steps: 20
+logging_steps: 1
+eval_steps: 1000
+resume_from_checkpoint: false
+
+cot_prompt_version: "think_answer_prompt_paper"        # <think></think><answer></answer>
+
+# Batch 配置
+rollout_batch_size: 4                 # 每个 batch 的 prompt 数量  
+num_return_sequences_in_group: 4      # 每个 prompt 生成的响应数 
+
+#is_num_return_sequences_expand: false
+generate_opt_level: 1 
+is_num_return_sequences_expand: true # 将一个 n=rollouts 的请求拆分成 rollouts 个 n=1 的请求,调度器可以更灵活地分配这些请求到不同的 worker,避免单个 worker 阻塞
+prompt_length: 4096
+response_length: 512
+
+
+# PPO 配置  
+ppo_epochs: 1
+value_clip: 0.5
+reward_clip: 10
+advantage_clip: 10.0
+whiten_advantages: false
+init_kl_coef: 0.0
+adv_estimator: "grpo"
+use_kl_loss: true
+kl_loss_coef: 1.0e-2
+
+
+pretrain: /tmp/Qwen2.5-VL-7B-Instruct/
+
+
+############ reward 配置 ##########
+is_offload_state_edit_model: true
+is_offload_state_vlm: true
+############ reward 配置 ##########
+
+
+actor_train:
+  model_args:
+    flash_attn: fa2
+    attn_implementation: fa2
+    disable_gradient_checkpointing: false
+    max_pixels: 1048576  # 1024*1024
+    min_pixels: 3136     # 56*56  
+    dtype: bf16
+    model_type: ~
+  training_args:
+    learning_rate: 1.0e-6
+    weight_decay: 1.0e-2
+    per_device_train_batch_size: 1
+    gradient_accumulation_steps: 16
+    warmup_steps: 0
+    #num_train_epochs: 100
+  data_args:
+    file_name:
+    # reason_edit 
+      - /data/rft_reason_edit/reason_t2i_data.jsonl      # 1600 samples    
+    domain_interleave_probs:
+      reason_edit: 0.6
+      reason_t2i: 0.4
+      #general_edit: 0.2
+      #general_t2i: 0.1
+    max_samples_per_file: 50 # 快速验证代码
+
+    messages: prompt
+    preprocessing_num_workers: 8
+  strategy_args:
+    strategy_name: megatron_train
+    strategy_config:
+      sequence_parallel: true
+      tensor_model_parallel_size: 2
+      context_parallel_size: 1
+      expert_model_parallel_size: 1
+      pipeline_model_parallel_size: 1
+      overlap_grad_reduce: true
+      use_distributed_optimizer: true
+      bf16: true
+  device_mapping: list(range(0,2))
+  infer_batch_size: 2
+  model_update_frequency: 1
+
+actor_infer:
+  model_args:
+    flash_attn: fa2
+    attn_implementation: fa2
+    disable_gradient_checkpointing: true
+    dtype: bf16
+  generating_args:
+    max_new_tokens: ${response_length}
+    top_p: 0.99
+    top_k: 100
+    num_beams: 1
+    temperature: 0.99
+    num_return_sequences: ${num_return_sequences_in_group}
+  strategy_args:
+    strategy_name: vllm
+    strategy_config:
+      gpu_memory_utilization: 0.8
+      block_size: 16
+      disable_mm_preprocessor_cache: true
+      enable_prefix_caching: false
+  num_gpus_per_worker: 1
+  device_mapping: list(range(0,2))
+  infer_batch_size: 2
+
+reference:
+  model_args:
+    flash_attn: fa2
+    attn_implementation: fa2
+    disable_gradient_checkpointing: true
+    dtype: bf16
+    model_type: ~
+  strategy_args:
+    strategy_name: megatron_infer
+    strategy_config:
+      sequence_parallel: true
+      tensor_model_parallel_size: 2
+      context_parallel_size: 1
+      pipeline_model_parallel_size: 1
+      expert_model_parallel_size: 1
+      bf16: true
+  device_mapping: list(range(0,2))
+  infer_batch_size: 2
+
+rewards:
+  reason_edit:
+    worker_cls: rlvr_image_think.rewards.reward_worker_reason_edit.ReasonEditRewardWorker
+
+    edit_max_area: 1048576 # 1024 * 1024
+    edit_sampling_steps: 10
+    edit_is_think_model: false  # use qwen-edit for qwen-edit-think
+
+    is_offload_state_edit_model: ${is_offload_state_edit_model}
+    is_offload_state_vlm: ${is_offload_state_vlm}
+
+    clusters:
+      - cluster_name: editor_model # 自定义名称，用于日志和度量
+        model_args:
+          model_name_or_path: "/tmp/checkpoints/Qwen-Image-Edit-2509/"
+        strategy_args:
+          strategy_name: hf_infer  
+          strategy_config: {}  
+
+      - cluster_name: vlm_judge_model
+        model_args:
+          model_name_or_path: "/tmp/checkpoints/Qwen3-VL-8B-Instruct/"
+
+        strategy_args:
+          strategy_name: hf_infer
+          strategy_config: {}
+
+    tag_included: [reason_edit]
+    device_mapping: list(range(2,3))  
+
+    ## for hf infer, 每个 worker 单卡
+    num_gpus_per_worker: 1            # 每个 worker 占用一个 GPU
+    world_size: 1                     # worker 的总数，必须与 device_mapping 列表的长度一致
+  
+  reason_t2i:
+    worker_cls: rlvr_image_think.rewards.reward_worker_reason_t2i.ReasonT2IRewardWorker
+
+    edit_max_area: 1048576 # 1024 * 1024
+    edit_sampling_steps: 10
+    edit_is_think_model: false  # use qwen-edit for qwen-edit-think
+    
+    is_offload_state_edit_model: ${is_offload_state_edit_model}
+    is_offload_state_vlm: ${is_offload_state_vlm}
+
+    clusters:
+      - cluster_name: editor_model # 自定义名称，用于日志和度量
+        model_args:
+          model_name_or_path: "/tmp/checkpoints/Qwen-Image-Edit-2509/"
+        strategy_args:
+          strategy_name: hf_infer  
+          strategy_config: {}  
+
+      - cluster_name: vlm_judge_model
+        model_args:
+          model_name_or_path: "/tmp/checkpoints/Qwen3-VL-8B-Instruct/"
+
+        strategy_args:
+          strategy_name: hf_infer
+          strategy_config: {}
+
+    tag_included: [reason_t2i]
+    device_mapping: list(range(3,4))  
+
+    ## for hf infer, 每个 worker 单卡
+    num_gpus_per_worker: 1            # 每个 worker 占用一个 GPU
+    world_size: 1                     # worker 的总数，必须与 device_mapping 列表的长度一致
+
+  
