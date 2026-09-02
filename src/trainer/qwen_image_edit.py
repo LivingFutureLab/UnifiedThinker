@@ -1,5 +1,5 @@
 #coding=utf-8
-# jianchong.zq
+# author
 
 import os
 import torch

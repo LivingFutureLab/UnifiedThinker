@@ -8,7 +8,7 @@ apt-get install -y curl git wget xz-utils tar
 apt-get install -y build-essential libc6-dev patch procps
 
 
-wget --tries=10 --waitretry=2 http://nebula-cv-hz2.oss-cn-hangzhou.aliyuncs.com/user/eval/node-v22.18.0-linux-x64.tar.xz
+wget --tries=10 --waitretry=2 
 tar -xf node-v22.18.0-linux-x64.tar.xz -C /opt/ && mv /opt/node-v22.18.0-linux-x64 /opt/nodejs
 ln -sf /opt/nodejs/bin/node /usr/local/bin/node
 ln -sf /opt/nodejs/bin/npm /usr/local/bin/npm
@@ -68,9 +68,9 @@ setup_aliyun_apt_source() {
     if [ "$SYSTEM" = "debian" ]; then
         # 使用 mirrors.cloud.aliyuncs.com 源
         cat > /etc/apt/sources.list <<EOF
-deb http://mirrors.cloud.aliyuncs.com/debian/ bookworm main non-free non-free-firmware contrib
-deb http://mirrors.cloud.aliyuncs.com/debian-security/ bookworm-security main
-deb http://mirrors.cloud.aliyuncs.com/debian/ bookworm-updates main non-free non-free-firmware contrib
+deb  bookworm main non-free non-free-firmware contrib
+deb  bookworm-security main
+deb  bookworm-updates main non-free non-free-firmware contrib
 EOF
     elif [ "$SYSTEM" = "ubuntu" ]; then
         # Ubuntu 使用 mirrors.cloud.aliyuncs.com 源
@@ -88,10 +88,10 @@ EOF
             fi
         fi
         cat > /etc/apt/sources.list <<EOF
-deb http://mirrors.cloud.aliyuncs.com/ubuntu/ $CODENAME main restricted universe multiverse
-deb http://mirrors.cloud.aliyuncs.com/ubuntu/ $CODENAME-security main restricted universe multiverse
-deb http://mirrors.cloud.aliyuncs.com/ubuntu/ $CODENAME-updates main restricted universe multiverse
-deb http://mirrors.cloud.aliyuncs.com/ubuntu/ $CODENAME-backports main restricted universe multiverse
+deb  $CODENAME main restricted universe multiverse
+deb  $CODENAME-security main restricted universe multiverse
+deb  $CODENAME-updates main restricted universe multiverse
+deb  $CODENAME-backports main restricted universe multiverse
 EOF
     fi
     
@@ -123,7 +123,7 @@ apt-get install -y curl git wget xz-utils tar
 apt-get install -y build-essential libc6-dev patch procps
 
 
-wget --tries=10 --waitretry=2 http://nebula-cv-hz2.oss-cn-hangzhou.aliyuncs.com/user/eval/node-v22.18.0-linux-x64.tar.xz
+wget --tries=10 --waitretry=2 
 tar -xf node-v22.18.0-linux-x64.tar.xz -C /opt/ && mv /opt/node-v22.18.0-linux-x64 /opt/nodejs
 ln -sf /opt/nodejs/bin/node /usr/local/bin/node
 ln -sf /opt/nodejs/bin/npm /usr/local/bin/npm
@@ -162,7 +162,7 @@ apt-get install -y curl git wget xz-utils tar
 apt-get install -y build-essential libc6-dev patch procps
 
 
-wget --tries=10 --waitretry=2 http://nebula-cv-hz2.oss-cn-hangzhou.aliyuncs.com/user/eval/node-v22.18.0-linux-x64.tar.xz
+wget --tries=10 --waitretry=2 
 tar -xf node-v22.18.0-linux-x64.tar.xz -C /opt/ && mv /opt/node-v22.18.0-linux-x64 /opt/nodejs
 ln -sf /opt/nodejs/bin/node /usr/local/bin/node
 ln -sf /opt/nodejs/bin/npm /usr/local/bin/npm
@@ -193,8 +193,8 @@ mkdir /root/.iflow
 
 
 iflow_set_up_template = iflow_set_up_install_script + "\n" + """
-#wget --retry-connrefused --tries=10 --waitretry=2 -O $WORKING_DIR/IFLOW.md 'http://nebula-cv-hz2.oss-cn-hangzhou.aliyuncs.com/user/eval/config/tb/IFLOW.md'
-#wget --retry-connrefused --tries=10 --waitretry=2 -O $WORKING_DIR/IFLOW.md 'http://nebula-cv-hz2.oss-cn-hangzhou.aliyuncs.com/user/eval/config/IFLOW.md'
+#wget --retry-connrefused --tries=10 --waitretry=2 -O $WORKING_DIR/IFLOW.md ''
+#wget --retry-connrefused --tries=10 --waitretry=2 -O $WORKING_DIR/IFLOW.md ''
 wget --retry-connrefused --tries=10 --waitretry=2 -O /root/.iflow/settings.json '{config}'
 
 #cat IFLOW.md 
@@ -205,8 +205,8 @@ iflow -vx
 
 
 iflow_set_up_template = iflow_set_up_install_script_roll + "\n" + """
-#wget --retry-connrefused --tries=10 --waitretry=2 -O $WORKING_DIR/IFLOW.md 'http://nebula-cv-hz2.oss-cn-hangzhou.aliyuncs.com/user/eval/config/tb/IFLOW.md'
-#wget --retry-connrefused --tries=10 --waitretry=2 -O $WORKING_DIR/IFLOW.md 'http://nebula-cv-hz2.oss-cn-hangzhou.aliyuncs.com/user/eval/config/IFLOW.md'
+#wget --retry-connrefused --tries=10 --waitretry=2 -O $WORKING_DIR/IFLOW.md ''
+#wget --retry-connrefused --tries=10 --waitretry=2 -O $WORKING_DIR/IFLOW.md ''
 wget --retry-connrefused --tries=10 --waitretry=2 -O /root/.iflow/settings.json '{config}'
 
 #cat IFLOW.md 

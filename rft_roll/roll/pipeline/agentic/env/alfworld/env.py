@@ -37,7 +37,7 @@ class AlfworldGemEnv(Env, gym.Env):
     def __init__(self,
                  mode: str = "train",
                  max_turns: int = 30,
-                 json_dir: str = "/data/oss_bucket_0/hanyi/RL/Debug",
+                 json_dir: str = "./data/RL/Debug",
                  data_yaml:str = "./eval_configs/base_config.yaml",
                  label_path:str = "./data",
                  timeout: float = 10.0,

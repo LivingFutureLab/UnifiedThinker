@@ -61,7 +61,7 @@ class MTShopSimulatorEnv:
                  timeout=10.0,
                  max_retries=3,
                  backoff=1.0,
-                 json_dir="/data/oss_bucket_0",
+                 json_dir="./data",
                  mode="train",
                  max_turns=30,
                  shopper_system_template="",

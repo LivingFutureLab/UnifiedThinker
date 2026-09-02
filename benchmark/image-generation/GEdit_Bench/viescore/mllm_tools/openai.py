@@ -97,11 +97,11 @@ class GPT4v():
             exit(1)
 
         #self.url = "https://api.openai.com/v1/chat/completions"
-        # jianchong.zq
+        # author
         from openai import OpenAI
         self.client = OpenAI(
             api_key=self.api_key,
-            base_url="https://idealab.alibaba-inc.com/api/openai/v1",
+            base_url="https://api.openai.com/v1",
         )
             
         self.model_name = model_name
@@ -148,7 +148,7 @@ class GPT4v():
             "Authorization": f"Bearer {self.api_key}"
         }
         #response = requests.post(self.url, json=payload, headers=headers)
-        # jianchong.zq
+        # author
         completion = self.client.chat.completions.create(**payload)
         response = completion.to_dict()
             
@@ -159,7 +159,7 @@ class GPT4v():
         if False:
             response = response.json()
         else:
-            # jianchong.zq:
+            # author:
             pass
 
         try:

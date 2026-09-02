@@ -37,7 +37,7 @@ from rlvr_image_think.rlvr_image_think_config import ImageEditRewardConfig
 #         {
 #             "name": "image-edit-model",
 #             "model_args": {
-#                 "model_name_or_path": "/tmp/jianchong.zq/checkpoints/Qwen-Image-Edit-2509/",
+#                 "model_name_or_path": "./checkpoints/Qwen-Image-Edit-2509/",
 #             },
 #             "strategy_args": {
 #                 "strategy_name": "hf_infer", # 使用HuggingFace标准推理策略
@@ -48,7 +48,7 @@ from rlvr_image_think.rlvr_image_think_config import ImageEditRewardConfig
 #         {
 #             "name": "vlm-judge-model",
 #             "model_args": {
-#                 "model_name_or_path": "/tmp/jianchong.zq/checkpoints/Qwen2.5-VL-7B-Instruct/",
+#                 "model_name_or_path": "./checkpoints/Qwen2.5-VL-7B-Instruct/",
 #                 "model_max_length": 4096,
 #             },
 #             "strategy_args": {

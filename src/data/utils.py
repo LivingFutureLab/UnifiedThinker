@@ -12,7 +12,11 @@ from transformers import AutoProcessor
 
 logger = getLogger(__name__)
 
-OSS_PUBLIC_ROOT = "/data/oss_bucket_0"
+# Local root that OSS-style dataset paths are mapped onto. Override with the
+# DATA_ROOT env var to point at wherever the datasets were downloaded.
+DATA_ROOT = os.environ.get("DATA_ROOT", "./data")
+
+OSS_PUBLIC_ROOT = DATA_ROOT
 
 
 def down_pth_feat(oss_path_real_image):
@@ -159,16 +163,16 @@ def query_glyph_feat(feat_dict: Dict[str, torch.Tensor], prompt: str) -> torch.T
 
 def replace_oss_prefix(path_string):
     """
-    替换给定的字符串路径前缀。
-    - 'oss://alimama-creative-public' 替换为 '/data/oss_bucket_1'
-    - 'oss://alimama-creative' 替换为 '/data/oss_bucket_0'
+    把 OSS 路径前缀映射到本地 DATA_ROOT。
+    - 'oss://<public-bucket>'  -> DATA_ROOT
+    - 'oss://<bucket>'         -> DATA_ROOT
     """
     if path_string.startswith("oss://alimama-creative-public"):
         return path_string.replace(
-            "oss://alimama-creative-public", "/data/oss_bucket_1", 1
+            "oss://alimama-creative-public", DATA_ROOT, 1
         )
     elif path_string.startswith("oss://alimama-creative"):
-        return path_string.replace("oss://alimama-creative", "/data/oss_bucket_0", 1)
+        return path_string.replace("oss://alimama-creative", DATA_ROOT, 1)
     else:
         return path_string
 

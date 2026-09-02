@@ -10,12 +10,15 @@ import tempfile
 from PIL import Image
 import torch
 from peft import LoraConfig
-from transformers import AutoProcessor
+from transformers import AutoProcessor, Qwen2_5_VLForConditionalGeneration
 from safetensors import safe_open
 import textwrap
 
 from src.data.odps_t2i_edit_data import preprocess_image
-from src.pipe.pipeline_qwen_image_edit_think import QwenImageEditThinkPipeline
+from src.pipe.pipeline_qwen_image_edit_think import (
+    QwenImageEditThinkPipeline,
+    EDIT_SYSTEM_PROMPT_20251117,
+)
 
 system_prompt_v3 = textwrap.dedent("""
     You are a **Visual-Language Model (VLM) Prompt Optimization Expert** specializing in image generation and editing. Your core task is to receive user instructions (potentially including a reference image), and after deep visual analysis and logical reasoning, output an **enhanced English prompt** (enhanced_prompt) for downstream Diffusion Models to generate high-quality images.
@@ -76,7 +79,7 @@ edit_cases = [
 
     {
         "ref_imgs_oss_path": [
-            "/data/oss_bucket_1/jianchong.zq/benchmarks/RISEBench/data/temporal_reasoning_images/1.png"
+            "assets/example_input.png"
         ],
         "prompt": "Draw what it will look like after being kept in a daily environment for a year.",
         "think": True
@@ -95,7 +98,41 @@ def get_caption_language(prompt):
             return 'zh'
     return 'en'
 
-def vlm_prompt_thinking(ref_images, edit_prompt, vlm_processor, pipe, max_new_tokens=128):
+def load_thinker(thinker_path, torch_dtype=torch.bfloat16, device=None):
+    """Load the UnifiedThinker (reasoning core).
+
+    The Thinker and Qwen-Image-Edit's text_encoder are two **separate** models:
+      - Thinker        : does the reasoning, producing the <think>/<answer> CoT and the enhanced prompt;
+      - text_encoder   : only encodes the final prompt into embeddings for the DiT, and is frozen during training.
+    Therefore the Thinker weights must be loaded explicitly and cannot rely on pipe.text_encoder.
+    """
+    thinker = Qwen2_5_VLForConditionalGeneration.from_pretrained(
+        thinker_path, torch_dtype=torch_dtype)
+    thinker = thinker.eval()
+    if device is not None:
+        thinker = thinker.to(device)
+    return thinker
+
+
+def vlm_prompt_thinking(ref_images, edit_prompt, vlm_processor, thinker, max_new_tokens=128):
+    """Run the Thinker over (image, instruction) and return the CoT text containing <think>/<answer>.
+
+    Args:
+        thinker: the UnifiedThinker model itself (Qwen2_5_VLForConditionalGeneration),
+                 **not** the diffusion pipeline.
+    """
+    # Defensive check: passing the pipe here used to silently degrade to pipe.text_encoder.generate(),
+    # so the reasoning was actually done by Qwen-Image-Edit's own vanilla text_encoder,
+    # and the UnifiedThinker weights were never loaded. Block that regression explicitly.
+    if hasattr(thinker, "text_encoder") or hasattr(thinker, "transformer"):
+        raise TypeError(
+            "vlm_prompt_thinking() expects the UnifiedThinker model itself, but got what "
+            "looks like a diffusion pipeline. Load the thinker via load_thinker(<path to "
+            "UnifiedThinker-7B>) and pass it here; pipe.text_encoder is NOT the thinker."
+        )
+    if not hasattr(thinker, "generate"):
+        raise TypeError(f"thinker must be a generative model, got {type(thinker).__name__}")
+
     content = []
     for i, im in enumerate(ref_images):
         content.append({"type": "text", "text": f"Input image {i+1}:\n"})
@@ -121,10 +158,10 @@ def vlm_prompt_thinking(ref_images, edit_prompt, vlm_processor, pipe, max_new_to
         return_dict=True,
         return_tensors="pt"
     )
-    inputs = inputs.to(pipe.text_encoder.device)
+    inputs = inputs.to(thinker.device)
 
     with torch.no_grad():
-        generated_ids = pipe.text_encoder.generate(
+        generated_ids = thinker.generate(
             **inputs, 
             max_new_tokens=max_new_tokens)
                     
@@ -143,6 +180,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--pretrained_model', type=str)
     parser.add_argument('--vlm_processor_path', type=str)
+    parser.add_argument('--thinker_path', type=str, default=None,
+                        help='UnifiedThinker checkpoint. Defaults to --vlm_processor_path.')
     
     parser.add_argument('--train_ckpt_file', type=str)
     parser.add_argument('--text_encoder_lora', action='store_true')
@@ -164,8 +203,11 @@ if __name__ == '__main__':
     pipe = QwenImageEditThinkPipeline.from_pretrained(
         args.pretrained_model, 
         torch_dtype=torch.bfloat16)
+
+    # The Thinker is a standalone model and must be loaded separately (not pipe.text_encoder)
+    thinker = load_thinker(args.thinker_path or args.vlm_processor_path)
     
-    # 修改 edit system prompt
+    # Set the edit system prompt
     pipe.prompt_template_encode = "<|im_start|>system\n" + EDIT_SYSTEM_PROMPT_20251117 + "<|im_end|>\n<|im_start|>user\n{}<|im_end|>\n<|im_start|>assistant\n"
     pipe.prompt_template_encode_start_idx = 2350
 
@@ -190,7 +232,7 @@ if __name__ == '__main__':
         pipe.transformer.add_adapter(transformer_lora_config)
         
     if args.train_ckpt_file is not None and os.path.isdir(args.train_ckpt_file):
-        # # 切片保存        
+        # # save slices
         index_path = os.path.join(args.train_ckpt_file, "model.safetensors.index.json")
         with open(index_path, "r") as f:
             index_data = json.load(f)
@@ -203,17 +245,17 @@ if __name__ == '__main__':
             tensors_by_shard[shard_file].append(tensor_name)
         
         final_state_dict = {}
-        # 使用tqdm来显示进度条
+        # Use tqdm to show a progress bar
         for shard_file, tensor_names in tqdm(tensors_by_shard.items(), desc="Loading shards"):
             shard_path = os.path.join(args.train_ckpt_file, shard_file)
             
-            # 使用 safe_open，它不会立即加载所有张量到内存，而是创建一个映射
-            # 这对于内存非常友好
+            # Use safe_open: it does not load all tensors into memory at once but creates a mapping
+            # This is very memory-friendly
             with safe_open(shard_path, framework="pt", device="cpu") as f:
                 for tensor_name in tensor_names:
-                    # 从分片文件中获取单个张量
+                    # Fetch a single tensor from the shard file
                     tensor = f.get_tensor(tensor_name)
-                    # 放入我们最终的 state_dict 中
+                    # Put it into our final state_dict
                     final_state_dict[tensor_name] = tensor
         
         state_dict_transformer = {k.replace("transformer.", ""): v for k, v in final_state_dict.items() if k.startswith("transformer.")}
@@ -228,8 +270,9 @@ if __name__ == '__main__':
             print("Load {} params for text_encoder, with {} unexpected_keys".format(len(state_dict_textencoder), len(unexpected_keys)))
         
     pipe = pipe.to("cuda")
-        
-    ## 理解任务
+    thinker = thinker.to("cuda")
+
+    ## Understanding task
     if args.und:
         print("\n" + "-" * 20 + " 理解任务 " + "-" * 20)        
         messages = [
@@ -242,7 +285,7 @@ if __name__ == '__main__':
                 "content": [
                     {
                         "type": "image",
-                        "image": "/data/oss_bucket_1/jianchong.zq/benchmarks/RISEBench/data/temporal_reasoning_images/1.png",
+                        "image": "assets/example_input.png",
                     },
                     {
                         "type": "text", 
@@ -260,10 +303,10 @@ if __name__ == '__main__':
             return_dict=True,
             return_tensors="pt"
         )
-        inputs = inputs.to(pipe.text_encoder.device)
+        inputs = inputs.to(thinker.device)
 
         # Inference: Generation of the output
-        generated_ids = pipe.text_encoder.generate(**inputs, max_new_tokens=128)
+        generated_ids = thinker.generate(**inputs, max_new_tokens=128)
         generated_ids_trimmed = [
             out_ids[len(in_ids) :] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
         ]
@@ -272,7 +315,7 @@ if __name__ == '__main__':
         )
         print(output_text)
     
-    ## T2I生成任务
+    ## T2I generation task
     if args.t2i:
         print("\n" + "-" * 20 + " 图像生成任务 " + "-" * 20)
         positive_magic = {
@@ -302,7 +345,7 @@ if __name__ == '__main__':
         image.save(tmp_image_file)
         print(f"write to {tmp_image_file}")
 
-    ## 图像编辑
+    ## Image editing
     if args.edit:
         print("\n" + "-" * 20 + " 图像编辑任务 " + "-" * 20)
         for idx, data in enumerate(edit_cases):
@@ -314,7 +357,7 @@ if __name__ == '__main__':
             
             prompt_cot = None
             if think:
-                prompt_cot = vlm_prompt_thinking(ref_imgs, prompt, vlm_processor, pipe, max_new_tokens=256)
+                prompt_cot = vlm_prompt_thinking(ref_imgs, prompt, vlm_processor, thinker, max_new_tokens=256)
                 print("prompt_cot: {}".format(prompt_cot))
                 try:
                     prompt_cot = json.loads(prompt_cot)['cot']
@@ -324,8 +367,8 @@ if __name__ == '__main__':
             width, height = ref_imgs[0].size
             print(f"width, height: {width} x {height}")
             
-            # qwen-image-edit 使用固定 pixel area;
-            # ours 和训练保持一致: 只对 > target_area 的图片进行下采样，不会对 < target_area 的图片进行上采样;
+            # qwen-image-edit uses a fixed pixel area;
+            # ours matches training: only downsample images > target_area, never upsample images < target_area;
             if args.train_ckpt_file is None:
                 fix_ref_img_pixel_area = True 
             else:

@@ -85,7 +85,7 @@ def calculate_completion(row):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data', type=str, default="/data/oss_bucket_0/jianchong.zq/benchmarks/RISEBench/datav2_total_w_subtask_only_temp_cuasal.json")    
+    parser.add_argument('--data', type=str, default="./data/benchmarks/RISEBench/datav2_total_w_subtask_only_temp_cuasal.json")    
     parser.add_argument('-r', '--pkl_result_file', type=str)
 
     args = parser.parse_args()

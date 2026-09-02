@@ -37,8 +37,8 @@ def call_gpt(original_image_path, result_image_path, edit_prompt, edit_type, pro
             #     base_url="url"
             # )
             client = OpenAI(
-                api_key="4ee222a0cc522b7872ed2334fdd65bac",
-                base_url="https://idealab.alibaba-inc.com/api/openai/v1",
+                api_key=os.environ.get("OPENAI_API_KEY", ""),
+                base_url="https://api.openai.com/v1",
             )
 
             prompt = prompts[edit_type]

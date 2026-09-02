@@ -115,7 +115,7 @@ if __name__ == "__main__":
     "ps_human", "style_change", "subject-add", "subject-remove", "subject-replace", "text_change", "tone_transfer"])
     parser.add_argument("--save_dir", type=str, default="csv_results")
     parser.add_argument("--backbone", type=str, default="gpt4o", choices=["gpt4o", "qwen25vl"])
-    parser.add_argument("--key_path", type=str, default="/data/oss_bucket_1/jianchong.zq/secret_t2.env")
+    parser.add_argument("--key_path", type=str, default="./data/secret_t2.env")
     args = parser.parse_args()
     model_name = args.model_name
     edited_images_dir = args.edited_images_dir

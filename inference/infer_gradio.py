@@ -1,7 +1,7 @@
 #coding=utf-8
 """
-图像编辑 Gradio Demo
-适合录制演示视频
+Image editing Gradio demo
+Suitable for recording demo videos
 """
 
 import os
@@ -13,7 +13,7 @@ from peft import LoraConfig
 
 from src.pipe.pipeline_qwen_image_edit_think import QwenImageEditThinkPipeline
 from src.data.odps_t2i_edit_data import preprocess_image
-from inference.qwen_edit_think.demo_qwen_edit_think import vlm_prompt_thinking
+from inference.qwen_edit_think.demo_qwen_edit_think import vlm_prompt_thinking, load_thinker
 from termcolor import colored
 import re
 
@@ -21,11 +21,24 @@ class ImageEditor:
     def __init__(self, 
                  pretrained_model_path,
                  vlm_processor_path,
+                 thinker_path=None,
                  train_ckpt_path=None,
                  use_lora=False,
-                 device="cuda"):
-        """初始化图像编辑器"""
+                 device="cuda",
+                 offload=True):
+        """Initialize the image editor."""
         self.device = device
+        # Thinker (~16GB) + pipe (~57GB) together exceed a single 80GB card in bf16.
+        # With offload=True the pipe uses diffusers' model cpu offload (modules swapped into VRAM on demand).
+        self.offload = offload
+        
+        # Load the Thinker first and move it to GPU immediately, freeing CPU RAM before loading the larger pipe.
+        # NOTE: pipe.text_encoder is Qwen-Image-Edit's own vanilla Qwen2.5-VL,
+        # not the UnifiedThinker; the Thinker must be loaded separately.
+        thinker_path = thinker_path or vlm_processor_path
+        print(f"🧠 Loading UnifiedThinker from {thinker_path}...")
+        self.thinker = load_thinker(thinker_path, torch_dtype=torch.bfloat16)
+        self.thinker = self.thinker.to(device)
         
         print("🔄 Loading image editing model...")
         self.pipe = QwenImageEditThinkPipeline.from_pretrained(
@@ -48,15 +61,23 @@ class ImageEditor:
             print(f"📦 Loading finetuned weights from {train_ckpt_path}...")
             self._load_checkpoint(train_ckpt_path)
         
-        self.pipe = self.pipe.to(device)
-        
         print("🧠 Loading VLM processor...")
         self.vlm_processor = AutoProcessor.from_pretrained(vlm_processor_path)
+        
+        if self.offload:
+            self.pipe.enable_model_cpu_offload()
+        else:
+            self.pipe = self.pipe.to(device)
         
         print("✅ Model loaded successfully!")
     
     def _load_checkpoint(self, ckpt_path):
-        """加载检查点权重"""
+        """Load checkpoint weights.
+
+        Handles two naming conventions: thinker-editor training saves as
+        dit./thinker., while older qwen-image-edit training saves as
+        transformer./text_encoder.
+        """
         from safetensors import safe_open
         import json
         from tqdm import tqdm
@@ -79,38 +100,48 @@ class ImageEditor:
                 for tensor_name in tensor_names:
                     final_state_dict[tensor_name] = f.get_tensor(tensor_name)
         
-        state_dict_transformer = {
-            k.replace("transformer.", ""): v 
-            for k, v in final_state_dict.items() 
-            if k.startswith("transformer.")
-        }
-        state_dict_textencoder = {
-            k.replace("text_encoder.", ""): v 
-            for k, v in final_state_dict.items() 
-            if k.startswith("text_encoder.")
+        # prefix -> target submodule
+        targets = {
+            "transformer.": self.pipe.transformer,
+            "dit.": self.pipe.transformer,
+            "text_encoder.": self.pipe.text_encoder,
+            "thinker.": self.thinker,
         }
         
-        if state_dict_transformer:
-            self.pipe.transformer.load_state_dict(state_dict_transformer, strict=False)
-            print(f"✓ Loaded {len(state_dict_transformer)} params for transformer")
+        matched = 0
+        for prefix, module in targets.items():
+            sub_state_dict = {
+                k[len(prefix):]: v
+                for k, v in final_state_dict.items()
+                if k.startswith(prefix)
+            }
+            if not sub_state_dict:
+                continue
+            module.load_state_dict(sub_state_dict, strict=False)
+            matched += len(sub_state_dict)
+            print(f"✓ Loaded {len(sub_state_dict)} params for '{prefix.rstrip('.')}'")
         
-        if state_dict_textencoder:
-            self.pipe.text_encoder.load_state_dict(state_dict_textencoder, strict=False)
-            print(f"✓ Loaded {len(state_dict_textencoder)} params for text_encoder")
+        # Fail loudly: if no prefix matches, the old code loaded nothing silently.
+        if matched == 0:
+            raise RuntimeError(
+                f"No weights loaded from {ckpt_path}: none of the tensor names match the "
+                f"expected prefixes {sorted(targets)}. Got e.g. "
+                f"{sorted(final_state_dict)[:3]}"
+            )
 
     def extract_answer_from_cot(self, prompt_cot):
-        """从思维链中提取 <answer> 标签内容"""
+        """Extract the <answer> tag content from the chain-of-thought."""
         if prompt_cot is None:
             return None
         
-        # 使用正则表达式提取 <answer>...</answer> 之间的内容
+        # Extract the content between <answer>...</answer> with a regex
         match = re.search(r'<answer>(.*?)</answer>', prompt_cot, re.DOTALL)
         
         if match:
             answer = match.group(1).strip()
             return answer
         else:
-            # 如果没有找到标签，返回原始内容
+            # If no tag is found, return the original content
             print(colored(f"Warning: No <answer> tag found, using full prompt", "yellow"))
             return prompt_cot
 
@@ -123,7 +154,7 @@ class ImageEditor:
                    seed=0,
                    progress=gr.Progress()):
         """
-        编辑图像（Gradio版本）
+        Edit an image (Gradio version)
         """
         if image is None:
             return None, "", "❌ Please upload an image first!"
@@ -132,14 +163,14 @@ class ImageEditor:
             return None, "", "❌ Please enter an editing instruction!"
         
         try:
-            # 预处理图像
+            # Preprocess the image
             progress(0.1, desc="📸 Processing image...")
             if isinstance(image, str):
                 image = Image.open(image).convert("RGB")
             image = preprocess_image(image, max_area=1024*1024, adjust_ar=False)
             width, height = image.size
             
-            # 生成思维链
+            # Generate the chain-of-thought
             prompt_cot = None
             if use_thinking:
                 progress(0.2, desc="🧠 Generating thinking chain...")
@@ -147,13 +178,15 @@ class ImageEditor:
                     [image], 
                     prompt, 
                     self.vlm_processor, 
-                    self.pipe,
-                    max_new_tokens=512  # 增加Token上限以支持更长内容
+                    self.thinker,
+                    # The Thinker's hierarchical CoT is long; too small a limit truncates it before <answer>,
+                    # making extract_answer_from_cot fall back to using the whole CoT as the prompt, hurting quality.
+                    max_new_tokens=4096
                 )
                 print(colored(f"Thinking: {prompt_cot}", "blue", attrs=["bold"]))
                 prompt = self.extract_answer_from_cot(prompt_cot)
             print(colored(f"Final prompts: '{prompt}'", "green", attrs=["bold"]))
-            # 准备输入
+            # Prepare inputs
             progress(0.3, desc="🎨 Preparing for editing...")
             inputs = {
                 "image": [image],
@@ -168,7 +201,7 @@ class ImageEditor:
                 "fix_ref_img_pixel_area": False
             }
             
-            # 执行推理
+            # Run inference
             progress(0.4, desc="✨ Editing image...")
             with torch.inference_mode():
                 output = self.pipe(**inputs, height=height, width=width)
@@ -194,7 +227,7 @@ class ImageEditor:
 
 
 def create_demo(editor):
-    """创建 Gradio 界面"""
+    """Create the Gradio interface."""
     
     custom_css = """
     #main_title {
@@ -216,11 +249,11 @@ def create_demo(editor):
         max-height: 600px;
     }
     #thinker_box textarea {
-        color: #1E90FF !important; /* 明显的道奇蓝 */
+        color: #1E90FF !important; /* dodger blue */
         font-family: 'Courier New', Courier, monospace;
         font-weight: 500;
         line-height: 1.5;
-        background-color: #f0f8ff; /* 浅蓝色背景衬托 */
+        background-color: #f0f8ff; /* light blue background */
     }
     """
     
@@ -229,7 +262,7 @@ def create_demo(editor):
         gr.HTML("<p id='subtitle'>AI-Powered Image Editing with Thinking Chain</p>")
         
         with gr.Row():
-            # 左侧：输入
+            # Left: inputs
             with gr.Column(scale=1):
                 gr.Markdown("### 📥 Input")
                 input_image = gr.Image(
@@ -275,7 +308,7 @@ def create_demo(editor):
                 
                 edit_btn = gr.Button("✨ Edit Image", variant="primary", size="lg")
             
-            # 右侧：输出
+            # Right: outputs
             with gr.Column(scale=1):
                 gr.Markdown("### 📤 Output")
                 output_image = gr.Image(
@@ -285,13 +318,13 @@ def create_demo(editor):
                     elem_classes=["output-image"]
                 )
                 
-                # 修改点 1：将 Thinking 内容独立出来，使用 Textbox 支持长文本和滚动
+                # Put the Thinking content in its own Textbox to support long text and scrolling
                 thinker_display = gr.Textbox(
                     label="🧠 Thinking Chain (Reasoning Process)",
                     placeholder="Thinking process will appear here...",
                     interactive=False,
-                    lines=8,        # 默认显示8行
-                    max_lines=20,   # 最多展开到20行，超出则滚动
+                    lines=8,        # show 8 lines by default
+                    max_lines=20,   # expand up to 20 lines, then scroll
                     elem_id="thinker_box"
                 )
                 
@@ -303,13 +336,13 @@ def create_demo(editor):
                 with gr.Row():
                     download_btn = gr.File(label="📥 Download Result")
         
-        # 事件处理
+        # Event handling
         def edit_and_save(image, prompt, use_thinking, num_steps, guidance_scale, seed, progress=gr.Progress()):
             result_img, thinking, info = editor.edit_image(
                 image, prompt, use_thinking, num_steps, guidance_scale, seed, progress
             )
             
-            # 保存结果
+            # Save the result
             if result_img:
                 output_path = f"outputs/result_{seed}.png"
                 os.makedirs("outputs", exist_ok=True)
@@ -339,17 +372,23 @@ def create_demo(editor):
 import argparse
 
 def main():
-    """主函数"""
-    # 使用 argparse 接收命令行参数
+    """Main entry point."""
+    # Parse command-line arguments with argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_path", type=str, default="model/Qwen-Image-Edit-2509")
-    parser.add_argument("--processor_path", type=str, default="/root/UnifiedThinker/model/UnifiedThinker-7B")
+    parser.add_argument("--processor_path", type=str, default="model/UnifiedThinker-7B")
+    parser.add_argument("--thinker_path", type=str, default=None,
+                        help="UnifiedThinker-7B weights. Defaults to --processor_path.")
+    parser.add_argument("--ckpt_path", type=str, default=None)
+    parser.add_argument("--no_offload", action="store_true",
+                        help="Keep the whole pipeline on GPU instead of using "
+                             "diffusers model-cpu-offload (needs ~75GB VRAM).")
     args = parser.parse_args()
     
-    # 将变量替换为 args 中的值
+    # Replace variables with the values from args
     PRETRAINED_MODEL = args.model_path
     VLM_PROCESSOR = args.processor_path
-    TRAIN_CKPT = None
+    TRAIN_CKPT = args.ckpt_path
     USE_LORA = False
     
     print("="*60)
@@ -359,8 +398,10 @@ def main():
     editor = ImageEditor(
         pretrained_model_path=PRETRAINED_MODEL,
         vlm_processor_path=VLM_PROCESSOR,
+        thinker_path=args.thinker_path,
         train_ckpt_path=TRAIN_CKPT,
-        use_lora=USE_LORA
+        use_lora=USE_LORA,
+        offload=not args.no_offload
     )
     
     print("\n" + "="*60)

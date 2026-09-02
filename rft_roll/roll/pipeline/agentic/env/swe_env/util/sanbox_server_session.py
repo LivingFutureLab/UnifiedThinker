@@ -19,7 +19,7 @@ from roll.pipeline.agentic.env.swe_env.util.define.log import get_logger
 
 
 class SWERexClientSession:
-    def __init__(self, host: str = "https://xrl-aliyun.alibaba-inc.com/swe-rex/docker", logger=None):
+    def __init__(self, host: str = "https://api.openai.com/v1", logger=None):
         self.host = host
         if logger == None:
             self.logger = get_logger("SWERexClinet")

@@ -76,7 +76,7 @@ class BasePipeline:
         metrics["system/step"] = global_step
         if global_step > 0 and (
             global_step % self.pipeline_config.save_steps == 0 or global_step == self.pipeline_config.max_steps - 1
-            or global_step == 1 # jianchong.zq: step-1 验证性保存一次 ckpt
+            or global_step == 1 # author: step-1 验证性保存一次 ckpt
         ):
             ckpt_metrics_refss = []
             for cluster in self.checkpoint_clusters:

@@ -1,11 +1,11 @@
 dataset:
-  data_path: '/data/oss_bucket_0/hanyi/data/Alfworld/rl_train'
+  data_path: './data/data/Alfworld/rl_train'
   # data_path: './roll/agentic/env/alfworld/data/rl_train'
   # data_path: ''
   # eval_ood_data_path: './roll/agentic/env/alfworld/data/valid_unseen'
   # eval_id_data_path: './data/json_2.1.1/valid_seen'    # null/None to disable
-  eval_ood_data_path: '/data/oss_bucket_0/hanyi/data/Alfworld/valid_unseen'
-  # eval_ood_data_path: '/data/oss_bucket_0/hanyi/Agent/alfworld/data/valid_unseen' 
+  eval_ood_data_path: './data/data/Alfworld/valid_unseen'
+  # eval_ood_data_path: './data/Agent/alfworld/data/valid_unseen' 
   num_train_games: -1                                          # max training games (<=0 indicates full dataset)
   num_eval_games: -1                                           # max evaluation games (<=0 indicates full dataset)
 

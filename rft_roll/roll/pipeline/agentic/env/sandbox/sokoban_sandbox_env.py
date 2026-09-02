@@ -37,7 +37,7 @@ class SokobanSandboxEnv(Env):
         if config is None or not hasattr(config, 'base_url'):
             config = SandboxConfig()
 
-        config.image = 'hub.docker.alibaba-inc.com/chatos/sandbox-sokoban:0.0.26'
+        config.image = 'docker.io/chatos/sandbox-sokoban:0.0.26'
         config.auto_clear_seconds=60 * 120 # Auto-delete after 2 hours of inactivity
         
         self.sandbox_config = config

@@ -15,7 +15,7 @@ system_envs:
   #RAY_PROFILING: "1"
   #RAY_DEBUG: "legacy"   # 启用 pdb 调试  
 
-profiler_output_dir: /tmp/checkpoints/rlvr_image_edit_think/profile/local_debug
+profiler_output_dir: ./checkpoints/rlvr_image_edit_think/profile/local_debug
 
 exp_name: "rlvr_image_think"
 seed: 42
@@ -172,14 +172,14 @@ rewards:
     clusters:
       - cluster_name: editor_model # 自定义名称，用于日志和度量
         model_args:
-          model_name_or_path: "/tmp/checkpoints/Qwen-Image-Edit-2509/"
+          model_name_or_path: "./checkpoints/Qwen-Image-Edit-2509/"
         strategy_args:
           strategy_name: hf_infer  
           strategy_config: {}  
 
       - cluster_name: vlm_judge_model
         model_args:
-          model_name_or_path: "/tmp/checkpoints/Qwen3-VL-8B-Instruct/"
+          model_name_or_path: "./checkpoints/Qwen3-VL-8B-Instruct/"
 
         strategy_args:
           strategy_name: hf_infer
@@ -205,14 +205,14 @@ rewards:
     clusters:
       - cluster_name: editor_model # 自定义名称，用于日志和度量
         model_args:
-          model_name_or_path: "/tmp/checkpoints/Qwen-Image-Edit-2509/"
+          model_name_or_path: "./checkpoints/Qwen-Image-Edit-2509/"
         strategy_args:
           strategy_name: hf_infer  
           strategy_config: {}  
 
       - cluster_name: vlm_judge_model
         model_args:
-          model_name_or_path: "/tmp/checkpoints/Qwen3-VL-8B-Instruct/"
+          model_name_or_path: "./checkpoints/Qwen3-VL-8B-Instruct/"
 
         strategy_args:
           strategy_name: hf_infer

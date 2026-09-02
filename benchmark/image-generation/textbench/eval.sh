@@ -5,8 +5,8 @@ cd ${SCRIPT_DIR}
 export HF_ENDPOINT=https://hf-mirror.com
 
 
-#SAMPLE_FOLDER=/tmp//checkpoints/Qwen-Image-Edit-2509/textbench_zh
-SAMPLE_FOLDER=/tmp//checkpoints/unified_sft_qwen_image_edit/qwen_image_edit_unified_alimama_zero2_bs1440_lr1e_05_20251010_01/ckpt/step-10000/textbench_zh
+#SAMPLE_FOLDER=./checkpoints/Qwen-Image-Edit-2509/textbench_zh
+SAMPLE_FOLDER=./checkpoints/unified_sft_qwen_image_edit/qwen_image_edit_unified_alimama_zero2_bs1440_lr1e_05_20251010_01/ckpt/step-10000/textbench_zh
 
 MODE=zh # en or zh
 OUTPUT_DIR=${SAMPLE_FOLDER}

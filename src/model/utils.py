@@ -113,7 +113,7 @@ def download_model_weight(model_path):
                 repo_download(repo_id=model_path, local_dir=root_dir)
             else:
                 shutil.copytree(
-                    "/data/oss_bucket_0/" + model_path, root_dir, dirs_exist_ok=True
+                    "./data/" + model_path, root_dir, dirs_exist_ok=True
                 )
                 # shutil.copytree(model_path, root_dir, dirs_exist_ok=True)
             open(label_path, "w").close()

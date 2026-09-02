@@ -99,7 +99,7 @@ class Qwen25VL():
 if __name__ == "__main__":
     model = Qwen25VL()
     prompt = model.prepare_prompt(
-        ["https://qianwen-res.oss-cn-beijing.aliyuncs.com/Qwen-VL/assets/demo.jpeg"], 
+        [""], 
         'Describe the image in detail.'
     )
     res = model.get_parsed_output(prompt)

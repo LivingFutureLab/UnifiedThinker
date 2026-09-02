@@ -244,7 +244,7 @@ class Trainer(BaseTrainer):
     def validate(self, save_dir, args):
         
         PROMPTS_LIST = []
-        with open('/data/oss_bucket_0/litong/data/2-train-valid/for_train_valid.txt', "r", encoding="utf-8") as f:
+        with open('./data/data/2-train-valid/for_train_valid.txt', "r", encoding="utf-8") as f:
             PROMPTS_LIST.extend([
                 line.strip() for line in f.readlines() if line.strip()
             ])

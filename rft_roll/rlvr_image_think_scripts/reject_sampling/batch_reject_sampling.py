@@ -266,7 +266,7 @@ oss_bucket = oss2.Bucket(oss2.Auth(oss_access_id, oss_access_key), oss_endpoint,
 
 def load_image_from_oss(oss_path) -> str:
     object_key = oss_path.replace(f"oss://{bucket_name}/", "")
-    object_key = object_key.replace("/data/oss_bucket_0/", "").replace("/data/oss_bucket_1/", "")
+    object_key = object_key.replace(os.environ.get("DATA_ROOT","./data")+"/", "")
     suffix = os.path.splitext(object_key)[1]
     with tempfile.NamedTemporaryFile(delete=True, suffix=suffix) as tmp_f:
         oss_bucket.get_object_to_file(object_key, tmp_f.name)
@@ -277,9 +277,9 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_file', type=str )
-    parser.add_argument('--thinker_model', type=str, default="/tmp/jianchong.zq/checkpoints/Qwen2.5-VL-7B-Instruct/")
-    parser.add_argument('--edit_model', type=str, default="/tmp/jianchong.zq/checkpoints/Qwen-Image-Edit-2509/")
-    parser.add_argument('--score_model', type=str, default="/tmp/jianchong.zq/checkpoints/Qwen3-VL-8B-Instruct/")
+    parser.add_argument('--thinker_model', type=str, default="./checkpoints/Qwen2.5-VL-7B-Instruct/")
+    parser.add_argument('--edit_model', type=str, default="./checkpoints/Qwen-Image-Edit-2509/")
+    parser.add_argument('--score_model', type=str, default="./checkpoints/Qwen3-VL-8B-Instruct/")
     parser.add_argument('-n', '--num_rollouts', type=int, default=16)
     
     parser.add_argument('--pdb_debug', action='store_true')

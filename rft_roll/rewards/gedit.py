@@ -1,5 +1,5 @@
 #coding=utf-8
-#jianchong.zq: revise from https://github.com/stepfun-ai/Step1X-Edit/tree/main/GEdit-Bench
+#author: revise from https://github.com/stepfun-ai/Step1X-Edit/tree/main/GEdit-Bench
 
 import os, sys
 from typing import Union, List, Optional
@@ -765,13 +765,13 @@ def process_single_item(item, vie_score, max_retries=10):
             
             
 if __name__ == "__main__":
-    vie_scorer = VIEScore(task='tie', pretrained_model="/tmp/jianchong.zq/checkpoints/Qwen3-VL-8B-Instruct/", device_map="auto")
+    vie_scorer = VIEScore(task='tie', pretrained_model="./checkpoints/Qwen3-VL-8B-Instruct/", device_map="auto")
         
     # from datasets import load_dataset, load_from_disk
     # #dataset = load_dataset("stepfun-ai/GEdit-Bench")
     
-    datas = json.load(open("/data/oss_bucket_0/mllm_dataset/public_datasets/image_edit/GEdit-Bench/gedit_1k.json"))
-    edited_images_dir = "/data/oss_bucket_0/mllm_dataset/public_datasets/image_edit/GEdit-Bench/images/"
+    datas = json.load(open("./data/public_datasets/image_edit/GEdit-Bench/gedit_1k.json"))
+    edited_images_dir = "./data/public_datasets/image_edit/GEdit-Bench/images/"
     
     for idx in range(5):
         data = datas[idx]

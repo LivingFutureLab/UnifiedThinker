@@ -5,7 +5,7 @@ cd ${SCRIPT_DIR}
 export HF_ENDPOINT=https://hf-mirror.com
 
 
-edited_images_dir=/data/oss_bucket_1//tbstar_image_eval_results/Qwen3-VL-30B-A3B-Instruct_Qwen-Image-Edit-2509/
+edited_images_dir=./data/tbstar_image_eval_results/Qwen3-VL-30B-A3B-Instruct_Qwen-Image-Edit-2509/
 model_name=gedit/system_prompt_version-v3
 instruction_language=cn
 save_dir=${edited_images_dir}/${model_name}/csv_results_${instruction_language}

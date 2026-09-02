@@ -50,9 +50,9 @@ class RewardSystemHandler:
         xrl_authorization = reward_system_config.get("xrl_authorization", 
                                                      "t-29imkiykio27pmju")
         submit_url = reward_system_config.get("submit_url", 
-                                              "http://xrl.alibaba-inc.com/apis/custom/reward-system/v1/submit_task")
+                                              "https://api.openai.com/v1")
         get_result_url = reward_system_config.get("get_result_url", 
-                                                  "http://xrl.alibaba-inc.com/apis/custom/reward-system/v1/task_result")
+                                                  "https://api.openai.com/v1")
         
         mode = reward_system_config.get("reward_system_type", "online")
         assert mode in ["online", "pre"], f"Invalid xrl mode: {mode}"

@@ -796,7 +796,7 @@ def demo_usage_of_score_fn():
     print("="*50)
 
     # 1. 加载模型和处理器
-    model_id = "/tmp//checkpoints/Qwen2.5-VL-7B-Instruct/"
+    model_id = "./checkpoints/Qwen2.5-VL-7B-Instruct/"
     try:
         model = Qwen2_5_VLForConditionalGeneration.from_pretrained(model_id, dtype="auto", device_map="auto").eval()
         processor = AutoProcessor.from_pretrained(model_id)
@@ -810,10 +810,10 @@ def demo_usage_of_score_fn():
         "index": "temporal_reasoning_1",
         "category": "temporal_reasoning",
         "instruction": "Draw what it will look like after being kept in a daily environment for a year.",
-        "image": "/data/oss_bucket_0//benchmarks/RISEBench/data/temporal_reasoning_images/1.png",
+        "image": "./data/benchmarks/RISEBench/data/temporal_reasoning_images/1.png",
         "reference": "Rotten, blackened banana.",
         "subtask": "Life Progression",
-        "generated_image_path": "/data/oss_bucket_0//benchmarks/RISEBench/data/temporal_reasoning_images/1.png"
+        "generated_image_path": "./data/benchmarks/RISEBench/data/temporal_reasoning_images/1.png"
     }
     
     print(f"\n🔬 Scoring a sample for category: '{sample['category']}'")

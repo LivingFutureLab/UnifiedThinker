@@ -96,7 +96,7 @@ class SandboxManager:
                  sandbox_image: str,
                  logger,
                  xrl_authorization: str = "",
-                 sandbox_base_url: str = "https://xrl.alibaba-inc.com",
+                 sandbox_base_url: str = "https://api.openai.com/v1",
                  user_id: str = "0000",
                  experiment_id: str = "test",
                  run_type: str = "iflow-cli",

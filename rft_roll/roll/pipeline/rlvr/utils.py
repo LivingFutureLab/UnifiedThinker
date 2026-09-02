@@ -84,7 +84,7 @@ def dump_batch_to_reward_system(data: DataProto, tokenizer):
 
         write_log_url = reward_system_config.get(
             "write_log_url", 
-            "http://xrl.alibaba-inc.com/apis/custom/reward-system/v1/write_log"
+            "https://api.openai.com/v1"
             )
         xrl_authorization = reward_system_config.get("xrl_authorization", "t-29imkiykio27pmju")
         reward_system_type = reward_system_config.get("reward_system_type", "online")

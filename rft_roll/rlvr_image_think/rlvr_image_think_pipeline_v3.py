@@ -1,5 +1,5 @@
 #coding=utf-8
-#jianchong.zq: 适配 tbstar-image-think
+#author: 适配 tbstar-image-think
 """ 
 主要修改:
     在训练过程中将 actor_train (使用 megatron_train 策略) 的模型参数同步到 reward worker (使用 hf_infer 策略) 的某个 module。
@@ -635,7 +635,7 @@ class RLVRImageThinkPipeline(BasePipeline):
     #     metrics["system/step"] = global_step
     #     if global_step > 0 and (
     #         global_step % self.pipeline_config.save_steps == 0 or global_step == self.pipeline_config.max_steps - 1
-    #         or global_step == 1 # jianchong.zq: step-1 验证性保存一次 ckpt
+    #         or global_step == 1 # author: step-1 验证性保存一次 ckpt
     #     ):
     #         # ckpt_metrics_refss = []
     #         # for cluster in self.checkpoint_clusters:

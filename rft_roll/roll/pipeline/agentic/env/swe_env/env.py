@@ -46,7 +46,7 @@ class SWEEnv(Env, gym.Env):
         ],
         action_pattern="^<answer>(.*?)</answer>$",
         special_token_list=("<think>", "</think>", "<answer>", "</answer>", "<|im_start|>", "<|im_end|>"),
-        swe_rex_host="https://xrl-aliyun.alibaba-inc.com/swe-rex/docker",
+        swe_rex_host="https://api.openai.com/v1",
         traj_dir: str = "./traj/trainset/",
         swe_requirment_dir: str = "/home/lixing/workspace/swe_rele/dataset/2_docker_file/250820_valset_v1_swe_bench_verified_requirment",
         base_dir: str = "./logs",
@@ -839,7 +839,7 @@ if __name__ == "__main__":
         # ],
         action_pattern="^<answer>(.*?)</answer>$",
         special_token_list=("<think>", "</think>", "<answer>", "</answer>", "<|im_start|>", "<|im_end|>"),
-        swe_rex_host="https://xrl-aliyun.alibaba-inc.com/swe-rex/docker",
+        swe_rex_host="https://api.openai.com/v1",
         max_env_time=60 * 40,
         # base_agent='iflow' # choice from swe or iflow
         base_agent="swe",  # choice from swe or iflow

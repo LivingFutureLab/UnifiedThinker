@@ -1,5 +1,5 @@
 #coding=utf-8
-#jianchong.zq: 从 odps 表中拉 reason edit 相关数据, 过滤掉没有cot的data, 数据格式对齐 roll。
+#author: 从 odps 表中拉 reason edit 相关数据, 过滤掉没有cot的data, 数据格式对齐 roll。
 
 import os
 import common_io

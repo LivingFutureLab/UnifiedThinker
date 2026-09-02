@@ -3,10 +3,10 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 cd ${SCRIPT_DIR}
 
 
-image_path=/data/oss_bucket_1//tbstar_image_eval_results/Qwen-Image-Edit-2509/prism_bench/en/
+image_path=./data/tbstar_image_eval_results/Qwen-Image-Edit-2509/prism_bench/en/
 
 api_key=''
-base_url="https://idealab.alibaba-inc.com/api/openai/v1"
+base_url="https://api.openai.com/v1"
 api_model="gpt-41-0414-global"
 
 

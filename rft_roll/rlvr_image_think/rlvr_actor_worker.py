@@ -1,4 +1,4 @@
-#jianchong.zq: 继承 'roll/pipeline/rlvr/actor_worker.py', 方便进行调试
+#author: 继承 'roll/pipeline/rlvr/actor_worker.py', 方便进行调试
 
 import logging
 import numpy as np

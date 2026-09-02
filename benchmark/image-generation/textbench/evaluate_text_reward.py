@@ -29,7 +29,7 @@ class ImageEvaluator:
         self.device = device
 
         #model_id = "Qwen/Qwen2.5-VL-7B-Instruct"
-        model_id = "/tmp/jianchong.zq/checkpoints/Qwen2.5-VL-7B-Instruct"
+        model_id = "./checkpoints/Qwen2.5-VL-7B-Instruct"
         self.qwen_model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
             model_id,
             torch_dtype=torch.bfloat16,

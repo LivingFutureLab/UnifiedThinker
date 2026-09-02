@@ -105,7 +105,7 @@ def pre_download_and_update_dataset(
                 def download_worker(oss_path):
                     if not oss_path: return None
                     try:
-                        relative_path = oss_path.replace(f"oss://{oss_config['bucket_name']}/", "").replace("/data/oss_bucket_0/", "").replace("/data/oss_bucket_1/", "")
+                        relative_path = oss_path.replace(f"oss://{oss_config['bucket_name']}/", "").replace(os.environ.get("DATA_ROOT","./data")+"/", "")
                         local_path = os.path.join(local_image_root, relative_path)
                         if not os.path.exists(local_path):
                             os.makedirs(os.path.dirname(local_path), exist_ok=True)
@@ -142,7 +142,7 @@ def pre_download_and_update_dataset(
         logger.info("Rank 0: Creating path map file...")
         all_oss_paths = set(p for paths in dataset[image_column] if paths for p in (paths if isinstance(paths, list) else [paths]) if p)
         for oss_path in all_oss_paths:
-            relative_path = oss_path.replace(f"oss://{oss_config['bucket_name']}/", "").replace("/data/oss_bucket_0/", "").replace("/data/oss_bucket_1/", "")
+            relative_path = oss_path.replace(f"oss://{oss_config['bucket_name']}/", "").replace(os.environ.get("DATA_ROOT","./data")+"/", "")
             path_map[oss_path] = os.path.join(local_image_root, relative_path)
         with open(path_map_file, 'w') as f:
             json.dump(path_map, f)

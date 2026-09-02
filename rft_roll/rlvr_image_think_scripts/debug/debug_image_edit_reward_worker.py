@@ -1,5 +1,5 @@
 #coding=utf-8
-#jianchong.zq: 本地调试
+#author: 本地调试
 
 import os
 import sys

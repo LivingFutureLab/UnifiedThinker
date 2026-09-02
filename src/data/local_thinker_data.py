@@ -169,7 +169,7 @@ class LocalThinkerDataset(Dataset):
         self, 
         data_files, 
         data_weights=None,
-        qwenvl_pretrained: str = "/data/oss_bucket_0/jianchong.zq/pretrained_models/Qwen/Qwen2.5-VL-7B-Instruct",
+        qwenvl_pretrained: str = "./data/pretrained_models/Qwen/Qwen2.5-VL-7B-Instruct",
         max_sequent_length: int = 4096,
         oss_access_id="",
         oss_access_key="",
@@ -243,8 +243,8 @@ class LocalThinkerDataset(Dataset):
                     return None
         except Exception as e:
             utils.logger.warning(f"Failed to download or open image {oss_path}: {e}")
-            utils.logger.info("Try load from /data/oss_bucket_0/")
-            image_path = oss_path.replace(f"oss://{self.bucket_name}/", "/data/oss_bucket_0/")
+            utils.logger.info("Try load from ./data/")
+            image_path = oss_path.replace(f"oss://{self.bucket_name}/", os.environ.get("DATA_ROOT","./data")+"/")
             image = Image.open(image_path).convert("RGB")
             return image
                     
@@ -372,9 +372,9 @@ if __name__ == '__main__':
     import pdb; pdb.set_trace()
     
     train_dataset = LocalThinkerDataset(
-        data_files=["/data/oss_bucket_1/jianchong.zq/json_file_4_train/reason_edit_cot_for_thinker_training_72k.jsonl"],
+        data_files=["./data/json_file_4_train/reason_edit_cot_for_thinker_training_72k.jsonl"],
         data_weights=[1.0],
-        qwenvl_pretrained="/data/oss_bucket_0/jianchong.zq/pretrained_models/Qwen/Qwen2.5-VL-7B-Instruct",
+        qwenvl_pretrained="./data/pretrained_models/Qwen/Qwen2.5-VL-7B-Instruct",
         max_sequent_length=16384,
     )
     

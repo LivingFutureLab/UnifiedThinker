@@ -15,7 +15,7 @@ class FileSystemUploader:
     每个Role会把自己的ckpt dir的内容上传到OUTPUT_DIR/ckpt_id/下
     {
         "type": "file_system",
-        "output_dir": /data/oss_bucket_0/llm/models
+        "output_dir": ./data/models
     }
     """
 

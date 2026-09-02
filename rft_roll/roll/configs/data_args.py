@@ -31,7 +31,7 @@ class DataArguments:
     prompt: Optional[str] = field(default=None, metadata={"help": "Which column in file to use as prompt"})
     messages: Optional[str] = field(default=None, metadata={"help": "Which column in file to use as messages"})
 
-    #jianchong.zq
+    #author
     max_samples_per_file: Optional[int] = field(default=None, metadata={"help": "max num samples select from each "})
 
 

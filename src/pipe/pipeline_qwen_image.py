@@ -180,7 +180,7 @@ class QwenEmbedRope(nn.Module):
             self.neg_freqs = self.neg_freqs.to(device)
 
         if isinstance(video_fhw, list):
-            assert len(video_fhw) == 1, "batch size must be 1"  # add by jianchong.zq
+            assert len(video_fhw) == 1, "batch size must be 1"  # add by author
             video_fhw = video_fhw[0]
         if not isinstance(video_fhw, list):
             video_fhw = [video_fhw]     # [image_gen, image_cond1, image_cond2, ...]
@@ -278,7 +278,7 @@ class QwenImagePipeline(DiffusionPipeline, QwenImageLoraLoaderMixin):
         self.prompt_template_encode_start_idx = 34
         self.default_sample_size = 128
         
-        # Revise posembed by jianchong.zq, 为了兼容 t2i 和 edit, 临时硬编码修改
+        # Revise posembed by author, 为了兼容 t2i 和 edit, 临时硬编码修改
         self.transformer.pos_embed = QwenEmbedRope(theta=10000, axes_dim=self.transformer.pos_embed.axes_dim, scale_rope=True)
 
     def _extract_masked_hidden(self, hidden_states: torch.Tensor, mask: torch.Tensor):

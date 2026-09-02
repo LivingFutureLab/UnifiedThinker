@@ -35,7 +35,7 @@ class RepoClient(gym.Env):
         timeout=180,
         max_env_time=60 * 60,
         sanbox_mode="http",
-        swe_rex_host="https://xrl-aliyun.alibaba-inc.com/swe-rex/docker",
+        swe_rex_host="https://api.openai.com/v1",
     ):
         # Get the logger
         if logger is None:
@@ -52,7 +52,7 @@ class RepoClient(gym.Env):
         self.sanbox_host = (
             swe_rex_host
             if swe_rex_host
-            else os.getenv("SWE_REX_HOST", "https://xrl-aliyun.alibaba-inc.com/swe-rex/docker")
+            else os.getenv("SWE_REX_HOST", "https://api.openai.com/v1")
         )
 
         print("[RepoEnv][注意]sanbox_mode:", sanbox_mode)
@@ -192,7 +192,7 @@ class RepoClient(gym.Env):
         self.logger.info(f"[RepoEnv]开始准备swebench的环境 ...")
         self._execute_command(f"chmod +x /run_tests.sh")
         self._execute_command(f"ln -s /opt/miniconda3/envs/testbed /root/.venv")
-        self._execute_command(f"python -m pip install chardet -i https://mirrors.aliyun.com/pypi/simple/")
+        self._execute_command(f"python -m pip install chardet -i https://api.openai.com/v1")
         self.logger.info(f"[RepoEnv]swebench的环境准备完成 ...")
         return "SUCCESS"
 
@@ -227,7 +227,7 @@ class RepoClient(gym.Env):
         # self.logger.info('检查/testbed/.venv/bin/中的文件 ...')
         # self._execute_command(f"ls -la /testbed/.venv/bin/")
         # install required packages
-        # self._execute_command("uv pip install chardet -i https://mirrors.aliyun.com/pypi/simple/") # 默认安装了chardetect
+        # self._execute_command("uv pip install chardet -i https://api.openai.com/v1") # 默认安装了chardetect
         self._execute_command(f"ln -sf /testbed/.venv/bin/chardetect /usr/local/bin/chardet")
 
         # clean cache file. also delete pycache and pyc.
@@ -317,7 +317,7 @@ class RepoClient(gym.Env):
         # print('conda环境初始化完成')
 
         # out, _ = self.runtime.run("cat /run_tests.sh", timeout=1800)  # run the tests after applying the patch
-        # out, _ = self.runtime.run("pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/ && /run_tests.sh", timeout=1800)  # run the tests after applying the patch
+        # out, _ = self.runtime.run("pip config set global.index-url https://api.openai.com/v1 && /run_tests.sh", timeout=1800)  # run the tests after applying the patch
         out, _ = self.runtime.run("/run_tests.sh", timeout=1800)  # run the tests after applying the patch
 
         # parse eval logs & calculate reward
@@ -855,7 +855,7 @@ if __name__ == "__main__":
     # content = load_data_txt('/home/lixing/workspace/future_update/ROLL_version/ScaleAligner/roll/agentic/env/swe_env/util/tools/execute_bash.py')
     # print([content])
     # exit()
-    repo_env = RepoClient(swe_rex_host="https://xrl-aliyun.alibaba-inc.com/swe-rex/docker", sanbox_mode="sdk")
+    repo_env = RepoClient(swe_rex_host="https://api.openai.com/v1", sanbox_mode="sdk")
     from tests.agentic.sweenv.utils.utils_file import load_data_json
 
     # ds=load_data_json('/home/lixing/workspace/future_update/ROLL_version/ScaleAligner/data/swe_verified_iflow.json')

@@ -1,5 +1,5 @@
 #coding=utf-8
-# jianchong.zq, demo understanding dataset for debug only.
+# author, demo understanding dataset for debug only.
 
 import os, sys 
 rootdir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))

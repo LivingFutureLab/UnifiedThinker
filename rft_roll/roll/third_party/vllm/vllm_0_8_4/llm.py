@@ -17,7 +17,7 @@ from roll.platforms import current_platform
 from roll.third_party.vllm.vllm_0_8_4.llm_engine import LLMEngine084
 from roll.utils.send_recv_utils import SendBucketManager
 
-# jianchong.zq
+# author
 from roll.utils.logging import get_logger
 logger = get_logger()
 
@@ -121,7 +121,7 @@ class Llm084(LLM):
         )
         engine_args.resource_placement_groups = resource_placement_groups
         
-        logger.info(f"Llm084 engine_args: {engine_args}")  # jianchong.zq
+        logger.info(f"Llm084 engine_args: {engine_args}")  # author
 
         # Create the Engine (autoselects V0 vs V1)
         self.llm_engine = LLMEngine084.from_engine_args(

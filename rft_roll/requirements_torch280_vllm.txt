@@ -10,8 +10,8 @@ deepspeed==0.16.4
 
 flash-attn
 #flash-attn #==2.7.3
-# # ./ossutil sign oss://nebula-cv-hz2/user/jianchong.zq/tmp/flash_attn-2.7.3+cu12torch2.8cxx11abiFALSE-cp310-cp310-linux_x86_64.whl --timeout 3600000
-#http://nebula-cv-hz2.oss-cn-hangzhou.aliyuncs.com/user%2Fjianchong.zq%2Ftmp%2Fflash_attn-2.7.3%2Bcu12torch2.8cxx11abiFALSE-cp310-cp310-linux_x86_64.whl?Expires=1768554326&OSSAccessKeyId=LTAI5tK87LEzq2aAKShBnxH5&Signature=higjdlL0QblJzP8WIaFjwusKTjE%3D
+# # ./ossutil sign oss://nebula-cv-hz2/user/author/tmp/flash_attn-2.7.3+cu12torch2.8cxx11abiFALSE-cp310-cp310-linux_x86_64.whl --timeout 3600000
+#
 
 
 #transformer-engine[pytorch] #==2.2.0
@@ -22,11 +22,11 @@ vllm==0.10.2
 
 
 
-# jianchong.zq
+# author
 peft>=0.17.0    # for image-edit-reward
 diffusers[torch]>=0.35.0
 
-#http://alimama-creative-public.oss-cn-zhangjiakou-internal.aliyuncs.com/linjinpeng.ljp/public_models/whl/diffusers-0.35.0.dev0-py3-none-any.whl
+#
 #accelerate==0.34.2
 qwen_vl_utils
 termcolor

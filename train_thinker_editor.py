@@ -1,5 +1,5 @@
 #coding=utf-8
-#jianchong.zq: thinker + editor 训练
+#author: thinker + editor 训练
 #   thinker: 负责对原始prompt进行思考，输出cot
 #   editor: 接收cot，进行图像生成和编辑
 
@@ -59,7 +59,7 @@ def save_dataset_state(dataset, accelerator, save_path):
     专门保存 DistributeDataset 的状态。
     每个 rank 保存自己的状态文件。
     """
-    assert save_path.startswith("/data/oss_bucket_0/")
+    assert save_path.startswith(os.environ.get("DATA_ROOT","./data")+"/")
     if dataset and hasattr(dataset, "state_dict") and callable(dataset.state_dict):
         dataset_state_dir = save_path
         # 每个进程获取并保存自己的状态
@@ -102,7 +102,7 @@ def main(args):
         diffusers.utils.logging.set_verbosity_error()
     cfg_path = os.path.join(save_dir, "config.yaml")
     if cfg_path.startswith("oss://tstar-image-dataset/"):
-        cfg_path = cfg_path.replace("oss://tstar-image-dataset/", "/data/oss_bucket_0/")
+        cfg_path = cfg_path.replace("oss://tstar-image-dataset/", os.environ.get("DATA_ROOT","./data")+"/")
         os.makedirs(os.path.dirname(cfg_path), exist_ok=True)
     OmegaConf.save(args, cfg_path)
     print(f"Successfully saved config to {cfg_path}")

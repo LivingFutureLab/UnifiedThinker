@@ -126,8 +126,8 @@ rewards:
     worker_cls: src_rl.rlvr_image_think.image_edit_reward_worker.ImageEditRewardWorker
     judge_model_type: inference
 
-    editor_model_path: "/tmp//checkpoints/qwen_image_edit_think_experiments/qwen_image_edit_think_zero2_bs1024_lr1e_05_20251024_124721/ckpt/step-3000-merged"
-    judge_model_path: "/tmp//checkpoints/Qwen2.5-VL-7B-Instruct/"
+    editor_model_path: "./checkpoints/qwen_image_edit_think_experiments/qwen_image_edit_think_zero2_bs1024_lr1e_05_20251024_124721/ckpt/step-3000-merged"
+    judge_model_path: "./checkpoints/Qwen2.5-VL-7B-Instruct/"
 
     model_args:
       #model_name_or_path: virtuoussy/Qwen2.5-7B-Instruct-RLVR

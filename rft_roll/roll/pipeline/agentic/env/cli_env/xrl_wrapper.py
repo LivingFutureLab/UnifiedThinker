@@ -171,8 +171,8 @@ class SimpleXRLClient:
 
 # Convenience function for simple usage
 def create_sync_client(
-    sandbox_image: str = "hub.docker.alibaba-inc.com/chatos/iflow-cli:1.0",
-    sandbox_base_url: str = "https://xrl-sandbox.alibaba-inc.com",
+    sandbox_image: str = "docker.io/chatos/iflow-cli:1.0",
+    sandbox_base_url: str = "https://api.openai.com/v1",
     auto_clear_seconds: int = 1200,
     debug_info: bool = False
 ) -> SimpleXRLClient:

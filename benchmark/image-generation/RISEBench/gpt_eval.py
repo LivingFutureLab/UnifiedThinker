@@ -319,7 +319,7 @@ def calculate_completion(row):
         )
 
 
-# jianchong.zq: 过滤出不成功的cases
+# author: 过滤出不成功的cases
 def filter_result(result):
     failed_indexs = []
     for index in result:
@@ -389,7 +389,7 @@ def main():
     result = {}
     if osp.exists(tmp_file):
         result = load(tmp_file)
-    result = filter_result(result)    # jianchong.zq, filter上一轮评测失败的那些case
+    result = filter_result(result)    # author, filter上一轮评测失败的那些case
 
     items = []
 
@@ -397,7 +397,7 @@ def main():
         # Dealing with the normal part
         item = data.iloc[i]
         if item['index'] not in result:
-        #if item['index'] not in result or result[item['index']]["status"] == "failed":  # jianchong.zq
+        #if item['index'] not in result or result[item['index']]["status"] == "failed":  # author
             items.append(item)
 
     tups = [dict(item=x, input_dir=args.input, output_dir=args.output) for x in items]
@@ -409,7 +409,7 @@ def main():
         result = filter_result(result)
         for k, v in zip(keys, res):
             if k not in result:
-            #if k not in result or result[k]["status"] == "failed": # jianchong.zq
+            #if k not in result or result[k]["status"] == "failed": # author
                 result[k] = v
 
     judges = [result[i] for i in data['index']]

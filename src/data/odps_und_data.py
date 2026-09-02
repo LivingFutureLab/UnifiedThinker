@@ -1,5 +1,5 @@
 #coding=utf-8
-# jianchong.zq: 多模态理解数据
+# author: 多模态理解数据
 # 如果notebook调试，注意先配置 ~/.odps_config.ini
 
 import os, sys
@@ -85,7 +85,7 @@ def convert_to_qwen_vl_format(dialogue: list, image_paths: list[str]) -> list:
     return qwen_format_dialogue
 
 def oss_download_file(oss_bucket, oss_file, local_file):
-    oss_file = oss_file.replace("/data/oss_bucket_0/", "")
+    oss_file = oss_file.replace(os.environ.get("DATA_ROOT","./data")+"/", "")
     if not oss_bucket.object_exists(oss_file):
         print(f"{oss_file} not exist in oss bucket")
         return False
@@ -170,7 +170,7 @@ if __name__ == '__main__':
         from peft import LoraConfig
         
         pipe = QwenImageEditPlusPipeline.from_pretrained(
-                "/tmp/jianchong.zq/checkpoints/Qwen-Image-Edit-2509/", 
+                "./checkpoints/Qwen-Image-Edit-2509/", 
                 torch_dtype=torch.bfloat16
             )
         text_encoder = pipe.text_encoder

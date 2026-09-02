@@ -108,7 +108,7 @@ class QwenImageEditThinkPipeline(QwenImageEditPlusPipeline):
         # self.prompt_template_encode = "<|im_start|>system\n" + EDIT_SYSTEM_PROMPT_20251117 + "<|im_end|>\n<|im_start|>user\n{}<|im_end|>\n<|im_start|>assistant\n"
         # self.prompt_template_encode_start_idx = 2350
         
-        # # jianchong.zq: from qwen-image
+        # # author: from qwen-image
         # self.prompt_template_encode_t2i = "<|im_start|>system\nDescribe the image by detailing the color, shape, size, texture, quantity, text, spatial relationships of the objects and background:<|im_end|>\n<|im_start|>user\n{}<|im_end|>\n<|im_start|>assistant\n"
         # self.prompt_template_encode_start_idx_t2i = 34
         
@@ -227,7 +227,7 @@ class QwenImageEditThinkPipeline(QwenImageEditPlusPipeline):
         if prompt_embeds is None:
             prompt_embeds, prompt_embeds_mask = self._get_qwen_prompt_embeds(prompt, prompt_cot, image, device)
         
-        # jianchong.zq
+        # author
         prompt_embeds = prompt_embeds[:, -max_sequence_length:]
         prompt_embeds_mask = prompt_embeds_mask[:, -max_sequence_length:]
 

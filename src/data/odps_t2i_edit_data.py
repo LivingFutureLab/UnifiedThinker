@@ -1,5 +1,5 @@
 #coding=utf-8
-# jianchong.zq: for t2i+edit
+# author: for t2i+edit
 
 import os, sys 
 rootdir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
@@ -130,7 +130,7 @@ def get_caption_language(prompt):
     return 'en'
 
 def oss_download_file(oss_bucket, oss_file, local_file):
-    oss_file = oss_file.replace("/data/oss_bucket_0/", "")
+    oss_file = oss_file.replace(os.environ.get("DATA_ROOT","./data")+"/", "")
     if not oss_bucket.object_exists(oss_file):
         print(f"{oss_file} not exist in oss bucket")
         return False

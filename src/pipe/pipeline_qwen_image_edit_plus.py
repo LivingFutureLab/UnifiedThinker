@@ -218,7 +218,7 @@ class QwenEmbedRope(nn.Module):
             self.neg_freqs = self.neg_freqs.to(device)
 
         if isinstance(video_fhw, list):
-            assert len(video_fhw) == 1, "batch size must be 1"  # add by jianchong.zq
+            assert len(video_fhw) == 1, "batch size must be 1"  # add by author
             video_fhw = video_fhw[0]
         if not isinstance(video_fhw, list):
             video_fhw = [video_fhw]     # [image_gen, image_cond1, image_cond2, ...]
@@ -319,13 +319,13 @@ class QwenImageEditPlusPipeline(DiffusionPipeline, QwenImageLoraLoaderMixin):
         self.prompt_template_encode = "<|im_start|>system\nDescribe the key features of the input image (color, shape, size, texture, objects, background), then explain how the user's text instruction should alter or modify the image. Generate a new image that meets the user's requirements while maintaining consistency with the original input where appropriate.<|im_end|>\n<|im_start|>user\n{}<|im_end|>\n<|im_start|>assistant\n"
         self.prompt_template_encode_start_idx = 64  # start token id from user input
         
-        # jianchong.zq: from qwen-image
+        # author: from qwen-image
         self.prompt_template_encode_t2i = "<|im_start|>system\nDescribe the image by detailing the color, shape, size, texture, quantity, text, spatial relationships of the objects and background:<|im_end|>\n<|im_start|>user\n{}<|im_end|>\n<|im_start|>assistant\n"
         self.prompt_template_encode_start_idx_t2i = 34
         
         self.default_sample_size = 128
         
-        # Revise posembed by jianchong.zq, 为了兼容 t2i 和 edit, 临时硬编码修改
+        # Revise posembed by author, 为了兼容 t2i 和 edit, 临时硬编码修改
         self.transformer.pos_embed = QwenEmbedRope(theta=10000, axes_dim=self.transformer.pos_embed.axes_dim, scale_rope=True)
 
 
@@ -446,7 +446,7 @@ class QwenImageEditPlusPipeline(DiffusionPipeline, QwenImageLoraLoaderMixin):
         if prompt_embeds is None:
             prompt_embeds, prompt_embeds_mask = self._get_qwen_prompt_embeds(prompt, image, device)
         
-        # jianchong.zq
+        # author
         prompt_embeds = prompt_embeds[:, -max_sequence_length:]
         prompt_embeds_mask = prompt_embeds_mask[:, -max_sequence_length:]
 
@@ -778,7 +778,7 @@ class QwenImageEditPlusPipeline(DiffusionPipeline, QwenImageLoraLoaderMixin):
             returning a tuple, the first element is a list with the generated images.
         """
         if image is None or len(image) == 0:
-            # jianchong.zq: call t2i
+            # author: call t2i
             return self._generate_t2i(
                 prompt=prompt,
                 negative_prompt=negative_prompt,

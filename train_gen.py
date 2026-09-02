@@ -62,7 +62,7 @@ def main(args):
         diffusers.utils.logging.set_verbosity_error()
     cfg_path = os.path.join(save_dir, "config.yaml")
     if cfg_path.startswith("oss://tstar-image-dataset/"):
-        cfg_path = cfg_path.replace("oss://tstar-image-dataset/", "/data/oss_bucket_0/")
+        cfg_path = cfg_path.replace("oss://tstar-image-dataset/", os.environ.get("DATA_ROOT","./data")+"/")
         os.makedirs(os.path.dirname(cfg_path), exist_ok=True)
     OmegaConf.save(args, cfg_path)
     print(f"Successfully saved config to {cfg_path}")

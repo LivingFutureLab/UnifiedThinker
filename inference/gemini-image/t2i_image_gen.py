@@ -29,8 +29,8 @@ MODEL= "gemini-2.5-flash-image-preview"
 
 import argparse
 parser = argparse.ArgumentParser()
-parser.add_argument('--input_prompt_file', type=str, default="/data/oss_bucket_0/jianchong.zq/tmp/test_metadata_mix_zss.jsonl")
-parser.add_argument('--outdir', type=str, default="/data/oss_bucket_0/jianchong.zq/datas/gemini_generate_images/")
+parser.add_argument('--input_prompt_file', type=str, default="./data/tmp/test_metadata_mix_zss.jsonl")
+parser.add_argument('--outdir', type=str, default="./data/datas/gemini_generate_images/")
 parser.add_argument('--workers', type=int, default=5)
 parser.add_argument('--pdb_debug', action='store_true')
 args = parser.parse_args()
@@ -106,7 +106,7 @@ def call_vision_api(prompt):
     
     try:
         resp = requests.post(
-            "https://idealab.alibaba-inc.com/api/openai/v1/chat/completions", 
+            "https://api.openai.com/v1/chat/completions", 
             headers=headers, 
             data=json.dumps(payload), 
             timeout=300

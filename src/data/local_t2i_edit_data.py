@@ -1,5 +1,5 @@
 #coding=utf-8
-# jianchong.zq, load from json file
+# author, load from json file
 
 import torch
 from typing import Dict, List, Optional, Tuple, Union

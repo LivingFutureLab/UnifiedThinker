@@ -11,16 +11,16 @@ hydra:
 
 exp_name: "qwen2_5_vl_7B_rlvr"
 seed: 42
-logging_dir: /tmp/jianchong.zq/roll_exp/output/logs
-output_dir: /tmp/jianchong.zq/roll_exp/output
+logging_dir: ./checkpoints/roll_exp/output/logs
+output_dir: ./checkpoints/roll_exp/output
 
 checkpoint_config:
   type: file_system
-  output_dir: /tmp/jianchong.zq/roll_exp/models
+  output_dir: ./checkpoints/roll_exp/models
 
 track_with: tensorboard
 tracker_kwargs:
-  log_dir: /tmp/jianchong.zq/roll_exp/tensorboard
+  log_dir: ./checkpoints/roll_exp/tensorboard
 
 save_steps: 20
 logging_steps: 1
@@ -43,7 +43,7 @@ adv_estimator: "grpo"
 use_kl_loss: true
 kl_loss_coef: 1.0e-2
 
-pretrain: /tmp/jianchong.zq/checkpoints/Qwen2.5-VL-7B-Instruct
+pretrain: ./checkpoints/Qwen2.5-VL-7B-Instruct
 
 actor_train:
   model_args:

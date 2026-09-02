@@ -414,9 +414,9 @@ def process_single_item(model, image_path, text_prompt, eval_category):
 if __name__ == '__main__':
     import pdb; pdb.set_trace()
     
-    model = QwenVL(model_path="/tmp/jianchong.zq/checkpoints/Qwen3-VL-8B-Instruct", device_map="cuda:0")
+    model = QwenVL(model_path="./checkpoints/Qwen3-VL-8B-Instruct", device_map="cuda:0")
 
-    image_path = "/data/oss_bucket_1/jianchong.zq/tbstar_image_eval_results/Qwen-Image-Edit-2509/prism_bench/en/affection/0.png"
+    image_path = "./data/tbstar_image_eval_results/Qwen-Image-Edit-2509/prism_bench/en/affection/0.png"
     text_prompt = "Amidst the golden glow of a sunrise-drenched cityscape, the morning rush hour unfolds as a symphony of movement and solitude, where the vibrant red buses and cloaked figures navigate the transient dance of urban life, evoking both the anonymity of the crowd and the quiet introspection of individual journeys."
     eval_category = "affection"
     

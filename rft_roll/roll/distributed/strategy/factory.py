@@ -25,7 +25,7 @@ def create_strategy(worker: Worker) -> Union[InferenceStrategy, TrainStrategy]:
     elif strategy_name == "megatron_train":
         from roll.distributed.strategy.megatron_strategy import MegatronTrainStrategy as strategy_cls
 
-    # jianchong.zq
+    # author
     elif strategy_name == "qwen_edit_deepspeed":
         from flow_grpo_image_edit.strategy import QwenEditDeepSpeedStrategy as strategy_cls
         

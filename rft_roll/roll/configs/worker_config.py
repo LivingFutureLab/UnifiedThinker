@@ -13,7 +13,7 @@ logger = get_logger()
 class StrategyArguments:
     strategy_name: Literal[
         "deepspeed_train", "hf_infer", "deepspeed_infer", "vllm", "sglang", "megatron_infer", "megatron_train", "diffusion_deepspeed_train",
-        # jianchong.zq
+        # author
         "qwen_edit_deepspeed",
     ] = field(
         default="deepspeed_train",

@@ -28,12 +28,12 @@ DEBUG = True
 
 
 class SWERexClientSDK:
-    def __init__(self, host: str = "https://xrl-aliyun.alibaba-inc.com/swe-rex/docker", logger=None):
+    def __init__(self, host: str = "https://api.openai.com/v1", logger=None):
         self.host = host
         self.sandbox = None
         self.sanbox_id = None
-        self.host_write = "https://xrl-sandbox.alibaba-inc.com/apis/envs/sandbox/v1"  # 写集群，支持start，适合短命令
-        self.host_read = "https://xrl-sandbox-read.alibaba-inc.com/apis/envs/sandbox/v1"  # 读集群，支持arun，适合长期命令，不支持start
+        self.host_write = "https://api.openai.com/v1"  # 写集群，支持start，适合短命令
+        self.host_read = "https://api.openai.com/v1"  # 读集群，支持arun，适合长期命令，不支持start
         if logger == None:
             self.logger = get_logger("SWERexClinet")
         else:
@@ -624,8 +624,8 @@ if __name__ == "__main__":
     if DEBUG:
         pretty_print("==== docker_image: ", f"{docker_image}")
 
-    # client = SWERexClientSDK(host ='https://xrl-aliyun.alibaba-inc.com/swe-rex/docker')
-    client = SWERexClientSDK(host="https://xrl-sandbox.alibaba-inc.com/apis/envs/sandbox/v1")
+    # client = SWERexClientSDK(host ='https://api.openai.com/v1')
+    client = SWERexClientSDK(host="https://api.openai.com/v1")
     session = client.start_session(route_key="test")
 
     # test sdk start
